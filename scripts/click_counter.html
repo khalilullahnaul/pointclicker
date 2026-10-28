@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Clicks: 0</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { display: grid; place-items: center; font: 96px system-ui, sans-serif; background: #f4f4f4;
+         user-select: none; cursor: pointer; }
+</style>
+<body>
+<div id="n">0</div>
+<script>
+  // Counts real "click" events (down + up). The title lets scripts/test_apps.py read the count.
+  let n = 0;
+  document.body.addEventListener("click", () => {
+    n += 1;
+    document.getElementById("n").textContent = n;
+    document.title = "Clicks: " + n;
+  });
+</script>
+</body>
