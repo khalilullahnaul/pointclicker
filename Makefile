@@ -26,8 +26,8 @@ lint:
 	$(PY) -m ruff check .
 	$(PY) -m mypy
 
-soak:  # the 30-minute, 50-target schedule compressed 60x (about 35 s)
-	$(PY) tests/soak.py --minutes 30 --fast 60
+soak:  # the 30-minute, 50-target schedule compressed 20x (about 90 s; more compression piles clicks up unrealistically)
+	$(PY) tests/soak.py --minutes 30 --fast 20
 soak-full:  # the same in real time
 	$(PY) tests/soak.py --minutes 30
 
