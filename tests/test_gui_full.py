@@ -8,7 +8,7 @@ import pytest
 from PySide6.QtCore import QPoint, QRect, Qt
 from PySide6.QtGui import QColor
 from PySide6.QtTest import QTest
-from PySide6.QtWidgets import QAbstractButton, QAbstractScrollArea, QWidget
+from PySide6.QtWidgets import QAbstractButton, QAbstractScrollArea, QApplication, QWidget
 from qfluentwidgets import InfoBar, MessageBox, MessageBoxBase, isDarkTheme, themeColor
 from qfluentwidgets.components.dialog_box.mask_dialog_base import MaskDialogBase
 
@@ -443,6 +443,9 @@ def test_500_targets_stay_responsive(qtbot, answers):
         win.resize(1100, 700)
         win.show()
     assert timed(build) < 5
+    # Marker windows are created 50 per event-loop turn after the build; on Windows each is a real top-level
+    # window. Let that finish so each step below is timed on its own.
+    qtbot.waitUntil(lambda: not win.markers._pending, timeout=10_000)
     assert timed(lambda: c.set_enabled(cfg.targets[3].id, False)) < 0.2
     assert timed(lambda: c.update_target(replace(cfg.targets[4], name="edited"))) < 0.2
     assert timed(win.targets_page.tick) < 0.1
@@ -509,9 +512,13 @@ def _pick_layer(qtbot, monkeypatch, wayland):
     qtbot.waitUntil(lambda: bool(o._layers), timeout=3000)  # Wayland: after the screenshot thread reports back
     layer = o._layers[0]
     qtbot.waitExposed(layer)
-    QTest.mouseMove(layer, QPoint(100, 100))  # a move to where the mouse already is sends no event
-    QTest.mouseMove(layer, QPoint(200, 150))
-    qtbot.waitUntil(lambda: layer._pos == QPoint(200, 150))
+    # Straight to the widget: on a real desktop QTest.mouseMove moves the actual pointer (Windows CI), and what's
+    # tested here is the overlay's drawing, not the OS delivering pointer motion.
+    from PySide6.QtCore import QEvent, QPointF
+    from PySide6.QtGui import QMouseEvent
+    QApplication.sendEvent(layer, QMouseEvent(QEvent.MouseMove, QPointF(200, 150), layer.mapToGlobal(QPointF(200, 150)),
+                                              Qt.NoButton, Qt.NoButton, Qt.NoModifier))
+    assert layer._pos == QPoint(200, 150)
     return o, layer
 
 

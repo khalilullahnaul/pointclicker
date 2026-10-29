@@ -8,6 +8,7 @@ Fails (exit 1) on: a click arriving early, any click late or drifting by more th
 lost or landing in the wrong place, or growth in memory, threads or file handles.
 """
 import argparse
+import gc
 import json
 import os
 import statistics
@@ -106,6 +107,10 @@ def run(a, counters) -> int:
     c.start()
 
     proc = psutil.Process()
+    gc_ms: list[float] = []  # every garbage-collection pause: they stop the clicking thread too
+    gc_t0 = [0.0]
+    gc.callbacks.append(lambda phase, info: gc_t0.__setitem__(0, time.perf_counter()) if phase == "start"
+                        else gc_ms.append((time.perf_counter() - gc_t0[0]) * 1000))
     samples = []
 
     def sample():
@@ -169,6 +174,7 @@ def run(a, counters) -> int:
         "click_ms_p50_p99_max": [round(statistics.median(fire_ms), 2), round(sorted(fire_ms)[int(len(fire_ms) * .99)], 2),
                                  round(max(fire_ms), 2)] if fire_ms else None,
         "median_late_ms": round(statistics.median(lateness), 2) if lateness else None,
+        "gc_pauses_count_max_ms": [len(gc_ms), round(max(gc_ms, default=0), 2)],
         "rss_mb": [round(s[1] / 2**20, 1) for s in (warm[0], warm[-1])] if warm else None,
         "threads": sorted({s[2] for s in warm}), "fds": sorted({s[3] for s in warm}),
         "problems": problems[:25], "problem_count": len(problems),
