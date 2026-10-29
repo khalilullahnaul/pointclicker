@@ -468,12 +468,31 @@ def launch_command() -> list[str]:
     return [sys.executable] if getattr(sys, "frozen", False) else [sys.executable, "-m", "pointclicker"]
 
 
+RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
+
+
+def _autostart_file() -> Path:
+    return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "autostart" / "pointclicker.desktop"
+
+
+def launch_at_login_enabled() -> bool:
+    """What the system will actually do; the installer's "start with Windows" option sets it too."""
+    if sys.platform == "win32":
+        import winreg
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
+                winreg.QueryValueEx(key, "PointClicker")
+            return True
+        except OSError:
+            return False
+    return _autostart_file().exists()
+
+
 def set_launch_at_login(on: bool) -> None:
     """Windows: HKCU Run key. Linux: an XDG autostart entry."""
     if sys.platform == "win32":
         import winreg
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Run", 0,
-                            winreg.KEY_SET_VALUE) as key:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
             if on:
                 winreg.SetValueEx(key, "PointClicker", 0, winreg.REG_SZ, subprocess.list2cmdline(launch_command()))
             else:
@@ -482,7 +501,7 @@ def set_launch_at_login(on: bool) -> None:
                 except FileNotFoundError:
                     pass
         return
-    path = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "autostart" / "pointclicker.desktop"
+    path = _autostart_file()
     if on:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("[Desktop Entry]\nType=Application\nName=PointClicker\n"

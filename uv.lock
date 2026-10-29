@@ -458,7 +458,6 @@ wheels = [
 
 [[package]]
 name = "pointclicker"
-version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "evdev", marker = "sys_platform == 'linux'" },

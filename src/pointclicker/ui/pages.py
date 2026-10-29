@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import sys
+import threading
 
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QIcon
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QTableWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import (
@@ -29,6 +30,7 @@ from qfluentwidgets import (
 from qfluentwidgets import FluentIcon as FIF
 
 from .. import targets as targets_mod
+from .. import updates
 from ..controller import LOG_DIR
 from .style import APP_ICON, GRID, level_color
 from .targets import interval_text
@@ -241,9 +243,13 @@ class ProfilesPage(QWidget):
 
 
 class AboutPage(QWidget):
+    _update_checked = Signal(object)  # Update, None (up to date) or the exception, from the checking thread
+
     def __init__(self, controller, parent=None):
         super().__init__(parent)
         self.setObjectName("about")
+        self.c = controller
+        self._update_checked.connect(self._show_update)
         caps = controller.caps
         page, v = _page("about-scroll", "About")
 
@@ -292,6 +298,9 @@ class AboutPage(QWidget):
             b = PushButton(icon_, text)
             b.clicked.connect(lambda _=False, p_=path: QDesktopServices.openUrl(QUrl.fromLocalFile(str(p_))))
             links.addWidget(b)
+        self.update_btn = PushButton(FIF.UPDATE, "Check for updates")
+        self.update_btn.clicked.connect(self.check_updates)
+        links.addWidget(self.update_btn)
         links.addStretch()
         v.addLayout(links)
         diag = CaptionLabel("Something not clicking? Run  pointclicker --diagnose  in a terminal for a full report "
@@ -304,9 +313,34 @@ class AboutPage(QWidget):
         outer.addWidget(page)
 
 
+    def check_updates(self):
+        self.update_btn.setEnabled(False)
+        self.update_btn.setText("Checking…")
+
+        def work():
+            try:
+                result = updates.check()
+            except Exception as e:  # offline, rate-limited, unexpected reply: tell the user, don't crash
+                result = e
+            self._update_checked.emit(result)
+        threading.Thread(target=work, name="update-check", daemon=True).start()
+
+    def _show_update(self, result):
+        self.update_btn.setEnabled(True)
+        self.update_btn.setText("Check for updates")
+        if isinstance(result, Exception):
+            self.c.notify.emit("error", "Couldn't check for updates", str(result) or type(result).__name__)
+        elif result is None:
+            self.c.notify.emit("success", "You're up to date", f"PointClicker {_version()} is the latest version.")
+        else:
+            box = MessageBox(f"PointClicker {result.version} is available",
+                             f"You have version {_version()}. Open the download page?", self.window())
+            box.yesButton.setText("Open download page")
+            box.cancelButton.setText("Later")
+            if box.exec():
+                QDesktopServices.openUrl(QUrl(result.url))
+
+
 def _version() -> str:
-    try:
-        from importlib.metadata import version
-        return version("pointclicker")
-    except Exception:
-        return "dev"
+    from .. import __version__  # not importlib.metadata: a PyInstaller build carries no package metadata
+    return __version__

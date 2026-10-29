@@ -11,7 +11,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from pointclicker import targets  # noqa: E402
-from pointclicker.controller import AppController, set_launch_at_login  # noqa: E402
+from pointclicker.controller import AppController, launch_at_login_enabled, set_launch_at_login  # noqa: E402
 from pointclicker.platform import FakeBackend, FakeHotkeyBackend, set_backend, set_hotkey_backend  # noqa: E402
 from pointclicker.scheduler import State  # noqa: E402
 from pointclicker.targets import Target  # noqa: E402
@@ -145,11 +145,37 @@ class ControllerTest(unittest.TestCase):
     def test_launch_at_login_writes_and_removes_autostart_entry(self):
         with patch.dict(os.environ, {"XDG_CONFIG_HOME": self.tmp.name}):
             entry = Path(self.tmp.name) / "autostart" / "pointclicker.desktop"
+            self.assertFalse(launch_at_login_enabled())
             set_launch_at_login(True)
             self.assertIn("Exec=", entry.read_text())
             self.assertIn("-m pointclicker", entry.read_text())
+            self.assertTrue(launch_at_login_enabled())
             set_launch_at_login(False)
             self.assertFalse(entry.exists())
+            self.assertFalse(launch_at_login_enabled())
+
+    @unittest.skipUnless(sys.platform == "win32", "HKCU Run key")
+    def test_launch_at_login_writes_and_removes_run_key(self):
+        import winreg
+
+        from pointclicker.controller import RUN_KEY
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:  # leave a real machine as it was
+            try:
+                saved = winreg.QueryValueEx(key, "PointClicker")[0]
+            except FileNotFoundError:
+                saved = None
+        try:
+            set_launch_at_login(True)
+            self.assertTrue(launch_at_login_enabled())
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
+                self.assertIn("pointclicker", winreg.QueryValueEx(key, "PointClicker")[0])
+            set_launch_at_login(False)
+            self.assertFalse(launch_at_login_enabled())
+            set_launch_at_login(False)  # already off: no error
+        finally:
+            if saved is not None:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY, 0, winreg.KEY_SET_VALUE) as key:
+                    winreg.SetValueEx(key, "PointClicker", 0, winreg.REG_SZ, saved)
 
 
 if __name__ == "__main__":

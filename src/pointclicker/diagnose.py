@@ -148,7 +148,26 @@ def _self_test(app, backend) -> bool:
     return ok
 
 
+def _ensure_output() -> None:
+    """The Windows exe is windowed (no console): print to the console it was started from, else to a file.
+    And never die on a character the output encoding lacks (redirected output on Windows is cp1252)."""
+    if sys.stdout is None:
+        if sys.platform == "win32" and __import__("ctypes").windll.kernel32.AttachConsole(-1):  # parent's console
+            sys.stdout = open("CONOUT$", "w", errors="replace", buffering=1)  # noqa: SIM115 - lives until exit
+        else:
+            from .targets import config_path
+            path = config_path().parent / "logs" / "diagnose.txt"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            sys.stdout = open(path, "w", encoding="utf-8", buffering=1)  # noqa: SIM115 - lives until exit
+    if sys.stderr is None:
+        sys.stderr = sys.stdout
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
+
+
 def run() -> int:
+    _ensure_output()
     logging.basicConfig(level=logging.CRITICAL)  # every failure is reported in the rows below
     print("PointClicker diagnostics")
     _section("System")

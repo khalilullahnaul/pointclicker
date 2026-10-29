@@ -4,7 +4,7 @@ PY ?= .venv/bin/python
 PYTEST = $(PY) -m pytest -p no:cacheprovider -q
 QUICK = -m "not slow and not soak"
 
-.PHONY: test-quick test-all lint soak soak-full xvfb-local quick-core quick-gui quick-x11
+.PHONY: test-quick test-all lint soak soak-full xvfb-local quick-core quick-gui quick-x11 build-linux
 
 # Under a minute: everything except the slow marks, three pytest processes side by side.
 test-quick:
@@ -30,6 +30,12 @@ soak:  # the 30-minute, 50-target schedule compressed 60x (about 35 s)
 	$(PY) tests/soak.py --minutes 30 --fast 60
 soak-full:  # the same in real time
 	$(PY) tests/soak.py --minutes 30
+
+# AppImage + .deb in dist/ (the built app is smoke-tested under Xvfb first). Windows builds come from CI:
+# push a vX.Y.Z tag and .github/workflows/ci.yml attaches the installer, portable zip and Linux packages to a release.
+build-linux:
+	$(PY) build.py
+	PY=$(PY) packaging/linux/build.sh
 
 xvfb-local:
 	mkdir -p .tools/deb .tools/xvfb

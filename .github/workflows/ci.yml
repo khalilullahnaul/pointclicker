@@ -1,0 +1,162 @@
+# Tests on Linux and natively on Windows for every push and PR; builds on every run (the packaged app is
+# smoke-tested); a vX.Y.Z tag also publishes a GitHub Release with every package and SHA256 checksums.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  PYTHONUNBUFFERED: "1"
+  UV_PYTHON_PREFERENCE: only-system  # the interpreter from setup-python
+  LINUX_QT_LIBS: >-
+    libxcb-cursor0 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0
+    libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libegl1 libgl1 libfontconfig1 libdbus-1-3
+
+jobs:
+  test-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: {python-version: "3.12"}
+      - uses: astral-sh/setup-uv@v10
+      - name: X servers and Qt's system libraries
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb xserver-xephyr $LINUX_QT_LIBS
+      - run: uv sync --extra dev --locked
+      - name: make test-all (full Hypothesis, Xvfb integration, chaos, GUI, static checks, soak)
+        run: make test-all
+
+  test-windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: {python-version: "3.12"}
+      - uses: astral-sh/setup-uv@v10
+      - run: uv sync --extra dev --locked
+      - name: Full test suite, including real Win32 clicks (tests/test_win32_real.py)
+        env: {HYPOTHESIS_PROFILE: all}
+        run: .venv\Scripts\python -m pytest -p no:cacheprovider -q -ra -m "not soak"
+
+  build-windows:
+    needs: test-windows
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: {python-version: "3.12"}
+      - uses: astral-sh/setup-uv@v10
+      - run: uv sync --extra dev --locked
+      - name: Version (a release tag must match pointclicker.__version__)
+        id: v
+        shell: bash
+        run: |
+          v=$(.venv/Scripts/python -c "import build; print(build.version())")
+          if [[ "$GITHUB_REF" == refs/tags/v* && "${GITHUB_REF_NAME#v}" != "$v" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match __version__ $v"; exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: PyInstaller app folder + smoke test (PointClicker.exe --diagnose must not crash)
+        run: .venv\Scripts\python build.py
+      - name: Version resource is stamped
+        run: |
+          $info = (Get-Item dist\PointClicker\PointClicker.exe).VersionInfo
+          if ($info.ProductVersion -ne "${{ steps.v.outputs.version }}") { throw "exe ProductVersion is '$($info.ProductVersion)'" }
+      - name: Installer (Inno Setup)
+        run: |
+          choco install innosetup -y --no-progress
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Qp "/DAppVersion=${{ steps.v.outputs.version }}" packaging\windows\pointclicker.iss
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - name: Installer round trip (per-user install, shortcuts, start with Windows, clean uninstall)
+        run: |
+          $ErrorActionPreference = "Stop"
+          $setup = "dist\PointClicker-Setup-${{ steps.v.outputs.version }}.exe"
+          $app = "$env:LOCALAPPDATA\Programs\PointClicker"
+          $run = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+          Start-Process $setup -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/TASKS=desktopicon,startup" -Wait
+          if (-not (Test-Path "$app\PointClicker.exe")) { throw "not installed in $app" }
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\PointClicker.lnk")) { throw "no Start Menu shortcut" }
+          if (-not (Test-Path "$([Environment]::GetFolderPath('Desktop'))\PointClicker.lnk")) { throw "no desktop shortcut" }
+          if ((Get-ItemProperty $run).PointClicker -ne "`"$app\PointClicker.exe`"") { throw "start-with-Windows entry missing" }
+          New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\PointClicker" | Out-Null
+          Set-Content "$env:LOCALAPPDATA\PointClicker\config.json" "{}"
+          Start-Process "$app\unins000.exe" -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES" -Wait
+          for ($i = 0; ($i -lt 60) -and (Test-Path "$app\PointClicker.exe"); $i++) { Start-Sleep -Milliseconds 500 }
+          if (Test-Path "$app\PointClicker.exe") { throw "uninstall left the app behind" }
+          if ($null -ne (Get-ItemProperty $run).PointClicker) { throw "uninstall left the start-with-Windows entry" }
+          if (-not (Test-Path "$env:LOCALAPPDATA\PointClicker\config.json")) { throw "a silent uninstall must keep settings" }
+      - name: Portable zip
+        run: Compress-Archive -Path dist\PointClicker -DestinationPath "dist\PointClicker-${{ steps.v.outputs.version }}-windows-portable.zip"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: |
+            dist/PointClicker-Setup-*.exe
+            dist/PointClicker-*-windows-portable.zip
+          if-no-files-found: error
+
+  build-linux:
+    needs: test-linux
+    runs-on: ubuntu-22.04  # oldest supported glibc: the AppImage and .deb then run on older distros too
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: {python-version: "3.12"}
+      - uses: astral-sh/setup-uv@v10
+      - name: Xvfb (smoke test) and Qt's system libraries (bundled into the app)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb $LINUX_QT_LIBS
+      - run: uv sync --extra dev --locked
+      - name: Version (a release tag must match pointclicker.__version__)
+        run: |
+          v=$(.venv/bin/python -c "import build; print(build.version())")
+          if [[ "$GITHUB_REF" == refs/tags/v* && "${GITHUB_REF_NAME#v}" != "$v" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match __version__ $v"; exit 1
+          fi
+      - name: make build-linux (app folder + smoke test, AppImage, .deb)
+        run: make build-linux
+      - name: The .deb installs and runs
+        run: |
+          sudo apt-get install -y ./dist/pointclicker_*_amd64.deb
+          xvfb-run -a pointclicker --diagnose | tee diagnose.txt
+          grep -q "^Result:" diagnose.txt
+      - run: cp packaging/linux/setup-uinput.sh dist/pointclicker-setup-uinput.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: linux
+          path: |
+            dist/PointClicker-*-x86_64.AppImage
+            dist/pointclicker_*_amd64.deb
+            dist/pointclicker-setup-uinput.sh
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test-linux, test-windows, build-windows, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with: {path: dist, merge-multiple: true}
+      - name: SHA256 checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes --title "PointClicker ${GITHUB_REF_NAME#v}"

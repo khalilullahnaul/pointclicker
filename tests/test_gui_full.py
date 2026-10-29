@@ -552,6 +552,7 @@ def test_split_desktop_handles_hidpi_and_side_by_side_screens():
 
 
 def test_portal_screenshot_deletes_the_file_the_portal_saved(tmp_path, monkeypatch):
+    pytest.importorskip("jeepney")  # D-Bus: Linux only
     from pointclicker import overlay
     from pointclicker.platform.linux import portal
     saved = tmp_path / "Screenshot from now.png"

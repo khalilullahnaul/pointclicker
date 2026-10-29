@@ -98,6 +98,17 @@ class PlatformBackendTest(unittest.TestCase):
             self.assertIsInstance(backend, FakeBackend)
             self.assertTrue(any("Fake" in msg for msg in cm.output))
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows backend")
+    def test_factory_selects_windows_backend_on_windows(self):
+        from pointclicker.platform.windows.input import WindowsInputBackend
+        for session in (None, "windows", "x11", "wayland"):  # Linux session types mean nothing on Windows
+            self.assertIsInstance(create_backend(session), WindowsInputBackend)
+
+    @unittest.skipIf(sys.platform == "win32", "Linux backends")
+    def test_factory_selects_linux_backends(self):
+        with self.assertRaises(RuntimeError):
+            create_backend("windows")
+
         # Test Linux Wayland selection
         with self.assertLogs("pointclicker.platform", level="INFO") as cm:
             backend = create_backend("wayland")
