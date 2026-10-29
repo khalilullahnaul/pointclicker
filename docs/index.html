@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PointClicker: Free Auto Clicker for Windows and Linux (X11 &amp; Wayland)</title>
+<meta name="description" content="PointClicker is a free, open-source auto clicker for Windows 10/11 and Linux. Click many points on screen, each on its own schedule, follow moving windows, and click in the background without moving your mouse.">
+<meta name="keywords" content="auto clicker, autoclicker, auto clicker for Windows, auto clicker for Linux, Wayland auto clicker, background clicker, mouse clicker, click automation, free auto clicker, open source auto clicker">
+<link rel="canonical" href="https://khalilullahnaul.github.io/pointclicker/">
+<meta name="theme-color" content="#0b1220">
+<link rel="icon" type="image/png" href="images/icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="PointClicker">
+<meta property="og:title" content="PointClicker: Free Auto Clicker for Windows and Linux">
+<meta property="og:description" content="Many points, each on its own schedule. Background clicks without moving your mouse. Windows 10/11, Linux X11 and Wayland. Free and open source (MIT).">
+<meta property="og:url" content="https://khalilullahnaul.github.io/pointclicker/">
+<meta property="og:image" content="https://khalilullahnaul.github.io/pointclicker/images/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="PointClicker: free auto clicker for Windows and Linux">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PointClicker: Free Auto Clicker for Windows and Linux">
+<meta name="twitter:description" content="Many points, each on its own schedule. Background clicks without moving your mouse. Free and open source.">
+<meta name="twitter:image" content="https://khalilullahnaul.github.io/pointclicker/images/social-preview.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "PointClicker",
+  "alternateName": "Point Clicker",
+  "description": "Free, open-source auto clicker for Windows and Linux (X11 and Wayland). Clicks many fixed points on screen, each on its own schedule, follows the target window when it moves, and can click in the background without moving the mouse.",
+  "applicationCategory": "UtilitiesApplication",
+  "operatingSystem": "Windows 10, Windows 11, Linux",
+  "url": "https://khalilullahnaul.github.io/pointclicker/",
+  "downloadUrl": "https://github.com/khalilullahnaul/pointclicker/releases/latest",
+  "installUrl": "https://github.com/khalilullahnaul/pointclicker#installation",
+  "codeRepository": "https://github.com/khalilullahnaul/pointclicker",
+  "license": "https://opensource.org/licenses/MIT",
+  "isAccessibleForFree": true,
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+  "image": "https://khalilullahnaul.github.io/pointclicker/images/social-preview.png",
+  "screenshot": "https://khalilullahnaul.github.io/pointclicker/images/targets-light.png",
+  "author": {"@type": "Person", "name": "Khalil Ullah Naul", "url": "https://github.com/khalilullahnaul"},
+  "featureList": ["Many click targets, each with its own interval, start delay, repeat count and random jitter", "Background clicks without moving the mouse (Windows and X11)", "Follows the target window when it moves", "Global hotkeys, emergency stop", "Profiles", "Pick-a-point overlay with a magnifier", "Light and dark Fluent design"]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type": "Question", "name": "What is PointClicker?", "acceptedAnswer": {"@type": "Answer", "text": "PointClicker is a free, open-source auto clicker for Windows 10/11 and Linux (X11 and Wayland). It clicks fixed points on screen, each on its own schedule (interval, start delay, repeat count and optional random jitter), and follows the target window when it moves."}},
+    {"@type": "Question", "name": "Is PointClicker free and safe to download?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. PointClicker is free and MIT-licensed, its source code is public on GitHub, and every release is built from that source by public GitHub Actions with SHA-256 checksums published next to the downloads. Windows SmartScreen may warn because the app isn't code-signed yet: click More info, then Run anyway."}},
+    {"@type": "Question", "name": "Can an auto clicker click without moving my mouse?", "acceptedAnswer": {"@type": "Answer", "text": "Yes, on Windows and on Linux X11. PointClicker's background mode sends the click straight to the target window, even if it's covered by other windows, and your mouse never moves. Some apps, including many games and browsers, ignore such clicks; for those, use foreground mode, which moves the pointer, clicks and puts it back."}},
+    {"@type": "Question", "name": "Does PointClicker work on Wayland?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. On Wayland (GNOME, KDE Plasma and others) PointClicker clicks through the desktop's Remote Desktop portal, which asks for permission once. Wayland doesn't let apps click in the background or restore the pointer position, so clicks are foreground clicks there. Global hotkeys use the GlobalShortcuts portal, or a one-time setup on desktops without it."}},
+    {"@type": "Question", "name": "Can I auto click several points at different intervals?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Every target has its own interval in seconds, minutes or hours, its own start delay and repeat count, and optional random jitter, so one point can click every 30 seconds while another clicks every 5 minutes. Profiles keep separate sets of targets."}},
+    {"@type": "Question", "name": "How do I stop the auto clicker instantly?", "acceptedAnswer": {"@type": "Answer", "text": "Press F6 to start or pause, F7 to stop, or F8 for an emergency stop that also disables every target. The hotkeys work while other apps are focused and can be changed in Settings."}},
+    {"@type": "Question", "name": "Is it safe to use an auto clicker in online games?", "acceptedAnswer": {"@type": "Answer", "text": "Games with anti-cheat (Vanguard, Easy Anti-Cheat, BattlEye and others) can detect automated input and may ban your account. Don't use PointClicker, or any auto clicker, in those games."}},
+    {"@type": "Question", "name": "Does PointClicker run on macOS?", "acceptedAnswer": {"@type": "Answer", "text": "No. PointClicker supports Windows 10 and 11 and Linux with X11 or Wayland."}}
+  ]
+}
+</script>
+<style>
+:root {
+  --bg: #f6f8fb; --surface: #ffffff; --text: #111827; --muted: #4b5563; --line: #e2e8f0;
+  --accent: #0067c0; --accent-text: #ffffff; --code: #0f172a; --code-text: #e2e8f0;
+  --hero: linear-gradient(135deg, #e8f1ff 0%, #f6f8fb 60%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1220; --surface: #121b2e; --text: #e5edf8; --muted: #9fb0c8; --line: #1f2b44;
+    --accent: #4cc2ff; --accent-text: #04121f; --code: #060b16; --code-text: #d7e3f4;
+    --hero: linear-gradient(135deg, #13305e 0%, #0b1220 65%);
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text); line-height: 1.6;
+  font: 16px/1.6 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Noto Sans", Ubuntu, Cantarell, sans-serif;
+}
+a { color: var(--accent); }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+header.top { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--text); text-decoration: none; }
+.brand img { width: 28px; height: 28px; }
+nav a { color: var(--muted); text-decoration: none; margin-left: 18px; font-size: 15px; }
+nav a:hover { color: var(--text); }
+.hero { background: var(--hero); border-bottom: 1px solid var(--line); }
+.hero-grid { display: grid; grid-template-columns: 1fr 1.15fr; gap: 40px; align-items: center; padding-top: 24px; padding-bottom: 56px; }
+h1 { font-size: clamp(32px, 5vw, 50px); line-height: 1.1; margin: 0 0 16px; letter-spacing: -0.02em; }
+h1 span { color: var(--accent); }
+.lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; }
+.buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 8px;
+  font-weight: 600; text-decoration: none; border: 1px solid var(--line); color: var(--text); background: var(--surface);
+}
+.btn.primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+.btn small { font-weight: 400; opacity: .8; }
+.meta { margin-top: 14px; font-size: 14px; color: var(--muted); }
+.shot { width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); box-shadow: 0 20px 50px rgba(0, 0, 0, .18); display: block; }
+section { padding: 56px 0; border-bottom: 1px solid var(--line); }
+h2 { font-size: 30px; margin: 0 0 8px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 0 0 28px; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+.card h3 { margin: 0 0 6px; font-size: 17px; }
+.card p { margin: 0; color: var(--muted); font-size: 15px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid > *, .two > *, .hero-grid > * { min-width: 0; }  /* long commands scroll inside their box, not the page */
+pre {
+  position: relative; padding-right: 76px !important; white-space: pre-wrap; overflow-wrap: anywhere;
+  background: var(--code); color: var(--code-text); padding: 14px 16px; border-radius: 8px; overflow-x: auto;
+  font: 14px/1.5 ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, monospace; margin: 10px 0;
+}
+.copy { position: absolute; top: 8px; right: 8px; font: inherit; font-size: 13px; padding: 2px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+ol { padding-left: 20px; } ol li { margin: 4px 0; }
+details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; margin: 10px 0; }
+summary { cursor: pointer; font-weight: 600; }
+details p { margin: 10px 0 0; color: var(--muted); }
+footer { padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
+@media (max-width: 860px) {
+  .hero-grid, .two { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: 1fr 1fr; }
+  nav a:not(:last-child) { display: none; }
+}
+@media (max-width: 560px) { .grid { grid-template-columns: 1fr; } .btn { width: 100%; justify-content: center; } }
+</style>
+</head>
+<body>
+<div class="hero">
+  <header class="top wrap">
+    <a class="brand" href="./"><img src="images/icon.png" alt="" width="28" height="28">PointClicker</a>
+    <nav><a href="#features">Features</a><a href="#install">Install</a><a href="#faq">FAQ</a><a href="https://github.com/khalilullahnaul/pointclicker">GitHub</a></nav>
+  </header>
+  <div class="wrap hero-grid">
+    <div>
+      <h1>The free auto clicker for <span>Windows and Linux</span></h1>
+      <p class="lead">Click many points on screen, each on its own schedule. Clicks follow their window when it moves, and on Windows and X11 they can happen in the background, without moving your mouse.</p>
+      <div class="buttons">
+        <a class="btn primary" id="dl-windows" href="https://github.com/khalilullahnaul/pointclicker/releases/latest">Download for Windows <small>installer</small></a>
+        <a class="btn" id="dl-linux" href="https://github.com/khalilullahnaul/pointclicker/releases/latest">Download for Linux <small>AppImage</small></a>
+      </div>
+      <p class="meta"><span id="version">Latest release</span> · Free and open source (MIT) · Windows 10/11 · Linux X11 &amp; Wayland · <a href="https://github.com/khalilullahnaul/pointclicker/releases/latest">all downloads</a></p>
+    </div>
+    <picture>
+      <source srcset="images/targets-dark.png" media="(prefers-color-scheme: dark)">
+      <img class="shot" src="images/targets-light.png" width="1100" height="700" alt="PointClicker's Targets page: four click targets with their schedules, countdown rings and click counts">
+    </picture>
+  </div>
+</div>
+
+<main>
+<section id="features">
+  <div class="wrap">
+    <h2>Everything an auto clicker should do</h2>
+    <p class="sub">Built for clicking fixed points reliably, for hours, without getting in your way.</p>
+    <div class="grid">
+      <div class="card"><h3>Many targets, own schedules</h3><p>Each point has its own interval (seconds to hours), start delay, repeat count and optional random jitter.</p></div>
+      <div class="card"><h3>Background clicks</h3><p>On Windows and X11 the click goes straight to the window, even behind others. Your mouse stays where it is.</p></div>
+      <div class="card"><h3>Follows windows</h3><p>A target remembers its window. Move the window and the click moves with it; close it and clicking stops.</p></div>
+      <div class="card"><h3>Pixel-exact picking</h3><p>Pick a point on a frozen view of your screen with a magnifier and live coordinates.</p></div>
+      <div class="card"><h3>Hotkeys and emergency stop</h3><p>F6 start/pause, F7 stop, F8 emergency stop. Global, and you can rebind them.</p></div>
+      <div class="card"><h3>Works on Wayland</h3><p>Clicks through the desktop's permission portal on GNOME and KDE, plus full X11 and Windows support.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap two">
+    <img class="shot" src="images/picker.png" width="800" height="500" loading="lazy" alt="The pick-a-point overlay: a frozen screen with a crosshair, a magnifier and the X and Y coordinates">
+    <img class="shot" src="images/schedule-light.png" width="1100" height="700" loading="lazy" alt="The Schedule page: every target's interval, mode, next click, click count and last result">
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install in one minute</h2>
+    <p class="sub">No administrator rights needed. Every download is checked against the release's SHA-256 checksums.</p>
+    <div class="two">
+      <div class="card">
+        <h3>Windows 10 / 11</h3>
+        <ol>
+          <li>Download <a id="dl-windows-2" href="https://github.com/khalilullahnaul/pointclicker/releases/latest">PointClicker-Setup.exe</a> and run it.</li>
+          <li>If Windows shows "Windows protected your PC", click <b>More info</b>, then <b>Run anyway</b> (the app isn't code-signed yet).</li>
+        </ol>
+        <p>Or in PowerShell:</p>
+        <pre><button class="copy" type="button">Copy</button><code>irm https://raw.githubusercontent.com/khalilullahnaul/pointclicker/main/install.ps1 | iex</code></pre>
+        <p class="meta">Prefer no installer? Get the <a id="dl-portable" href="https://github.com/khalilullahnaul/pointclicker/releases/latest">portable zip</a>.</p>
+      </div>
+      <div class="card">
+        <h3>Linux</h3>
+        <p>One line, no sudo (AppImage, with an app-menu entry):</p>
+        <pre><button class="copy" type="button">Copy</button><code>curl -fsSL https://raw.githubusercontent.com/khalilullahnaul/pointclicker/main/install.sh | sh</code></pre>
+        <p>Debian, Ubuntu, Mint: download the <a id="dl-deb" href="https://github.com/khalilullahnaul/pointclicker/releases/latest">.deb</a>, then:</p>
+        <pre><button class="copy" type="button">Copy</button><code>sudo apt install ./pointclicker_*_amd64.deb</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <h2>Frequently asked questions</h2>
+    <details open><summary>What is PointClicker?</summary><p>PointClicker is a free, open-source auto clicker for Windows 10/11 and Linux (X11 and Wayland). It clicks fixed points on screen, each on its own schedule (interval, start delay, repeat count and optional random jitter), and follows the target window when it moves.</p></details>
+    <details><summary>Is PointClicker free and safe to download?</summary><p>Yes. PointClicker is free and MIT-licensed, its source code is public on GitHub, and every release is built from that source by public GitHub Actions with SHA-256 checksums published next to the downloads. Windows SmartScreen may warn because the app isn't code-signed yet: click More info, then Run anyway.</p></details>
+    <details><summary>Can an auto clicker click without moving my mouse?</summary><p>Yes, on Windows and on Linux X11. PointClicker's background mode sends the click straight to the target window, even if it's covered by other windows, and your mouse never moves. Some apps, including many games and browsers, ignore such clicks; for those, use foreground mode, which moves the pointer, clicks and puts it back.</p></details>
+    <details><summary>Does PointClicker work on Wayland?</summary><p>Yes. On Wayland (GNOME, KDE Plasma and others) PointClicker clicks through the desktop's Remote Desktop portal, which asks for permission once. Wayland doesn't let apps click in the background or restore the pointer position, so clicks are foreground clicks there. Global hotkeys use the GlobalShortcuts portal, or a one-time setup on desktops without it.</p></details>
+    <details><summary>Can I auto click several points at different intervals?</summary><p>Yes. Every target has its own interval in seconds, minutes or hours, its own start delay and repeat count, and optional random jitter, so one point can click every 30 seconds while another clicks every 5 minutes. Profiles keep separate sets of targets.</p></details>
+    <details><summary>How do I stop the auto clicker instantly?</summary><p>Press F6 to start or pause, F7 to stop, or F8 for an emergency stop that also disables every target. The hotkeys work while other apps are focused and can be changed in Settings.</p></details>
+    <details><summary>Is it safe to use an auto clicker in online games?</summary><p>Games with anti-cheat (Vanguard, Easy Anti-Cheat, BattlEye and others) can detect automated input and may ban your account. Don't use PointClicker, or any auto clicker, in those games.</p></details>
+    <details><summary>Does PointClicker run on macOS?</summary><p>No. PointClicker supports Windows 10 and 11 and Linux with X11 or Wayland.</p></details>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">PointClicker is free and open source under the <a href="https://github.com/khalilullahnaul/pointclicker/blob/main/LICENSE">MIT license</a> · <a href="https://github.com/khalilullahnaul/pointclicker">Source on GitHub</a> · <a href="https://github.com/khalilullahnaul/pointclicker/issues">Report a problem</a></div>
+</footer>
+
+<script>
+// Point the download buttons at the latest release's files (the links above already work without this).
+fetch("https://api.github.com/repos/khalilullahnaul/pointclicker/releases/latest")
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(rel => {
+    const find = re => (rel.assets || []).find(a => re.test(a.name));
+    const set = (ids, re) => { const a = find(re); if (a) ids.forEach(id => { const el = document.getElementById(id); if (el) el.href = a.browser_download_url; }); };
+    set(["dl-windows", "dl-windows-2"], /^PointClicker-Setup-.*\.exe$/);
+    set(["dl-linux"], /-x86_64\.AppImage$/);
+    set(["dl-portable"], /-windows-portable\.zip$/);
+    set(["dl-deb"], /_amd64\.deb$/);
+    document.getElementById("version").textContent = "Version " + rel.tag_name.replace(/^v/, "");
+  })
+  .catch(() => {});
+document.querySelectorAll(".copy").forEach(b => b.addEventListener("click", () => {
+  navigator.clipboard.writeText(b.nextElementSibling.textContent).then(() => { b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1500); });
+}));
+</script>
+</body>
+</html>

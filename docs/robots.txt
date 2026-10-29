@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://khalilullahnaul.github.io/pointclicker/sitemap.xml

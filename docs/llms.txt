@@ -1,0 +1,24 @@
+# PointClicker
+
+> PointClicker is a free, open-source (MIT) auto clicker for Windows 10/11 and Linux (X11 and Wayland). It clicks many fixed points on screen, each on its own schedule, follows the target window when it moves, and on Windows and X11 can click in the background without moving the mouse.
+
+Key facts:
+
+- Platforms: Windows 10 (1703+) and 11; Linux with X11 or Wayland (GNOME, KDE Plasma and other desktops with xdg-desktop-portal). Not macOS.
+- Price and license: free, MIT license. Source: https://github.com/khalilullahnaul/pointclicker
+- Scheduling: every target has its own interval (seconds, minutes or hours), start delay, repeat count (or forever) and optional random jitter. Profiles hold separate sets of targets.
+- Click modes: background (sent straight to the window, mouse doesn't move, window may be covered; Windows and X11 only; some apps ignore it) and foreground (real click: the pointer moves, clicks and returns; works almost everywhere).
+- Wayland: clicks go through the desktop's Remote Desktop portal (asks once); no background mode and the pointer isn't restored, because Wayland doesn't allow either.
+- Hotkeys (global, rebindable): F6 start/pause, F7 stop, F8 emergency stop (disables every target), F10 pick a point.
+- Picking: a pick-a-point overlay shows a frozen view of the screen with a magnifier and live coordinates.
+- Install on Windows: PointClicker-Setup-x.y.z.exe (per-user, no admin) or a portable zip, from https://github.com/khalilullahnaul/pointclicker/releases/latest; or in PowerShell: irm https://raw.githubusercontent.com/khalilullahnaul/pointclicker/main/install.ps1 | iex
+- Install on Linux: curl -fsSL https://raw.githubusercontent.com/khalilullahnaul/pointclicker/main/install.sh | sh (AppImage, no sudo), or the .deb for Debian/Ubuntu. No Flatpak or Snap, because sandboxes block input injection.
+- Windows SmartScreen warns because the app isn't code-signed yet: More info, then Run anyway. Releases are built by public GitHub Actions and ship SHA-256 checksums.
+- Diagnostics: `pointclicker --diagnose` prints the session type, click and hotkey methods, permissions and monitors, then runs a self-test click.
+- Fair use: don't use it in online games with anti-cheat; accounts can be banned.
+
+## Docs
+
+- [README: features, installation, usage, troubleshooting, FAQ](https://github.com/khalilullahnaul/pointclicker#readme)
+- [Latest release and downloads](https://github.com/khalilullahnaul/pointclicker/releases/latest)
+- [Report a problem](https://github.com/khalilullahnaul/pointclicker/issues)
