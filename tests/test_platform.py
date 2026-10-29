@@ -91,6 +91,20 @@ class PlatformBackendTest(unittest.TestCase):
         hk.stop()
         self.assertFalse(hk.started)
 
+    def test_target_never_jumps_to_another_window_of_the_same_app(self):
+        """Two windows of one app (same class): when the target's window closes, the other must not get its clicks."""
+        fake = FakeBackend()
+        set_backend(fake)
+        fake.windows = {1: {"class": "App", "title": "Doc A", "rect": Rect(0, 0, 300, 200)},
+                        2: {"class": "App", "title": "Doc B", "rect": Rect(400, 0, 700, 200)}}
+        t = Target(window_class="App", window_title="Doc A", rel_x=10, rel_y=20)
+        self.assertEqual((t.find_window(), t.resolve()), (1, (10, 20)))
+        del fake.windows[1]
+        self.assertIsNone(t.find_window())
+        self.assertIsNone(t.resolve())
+        self.assertFalse(t.click().ok)
+        self.assertEqual(fake.clicks, [])
+
     def test_factory_logging_and_selection(self):
         # Test fake selection
         with self.assertLogs("pointclicker.platform", level="INFO") as cm:

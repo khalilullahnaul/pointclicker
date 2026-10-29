@@ -52,7 +52,7 @@ def test_importing_every_module_never_touches_win32():
 
 
 def _tool(name):
-    return str(BIN / name) if (BIN / name).exists() else shutil.which(name)
+    return shutil.which(name, path=str(BIN)) or shutil.which(name)  # which() adds .exe on Windows
 
 
 def test_ruff():

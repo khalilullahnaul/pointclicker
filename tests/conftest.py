@@ -1,13 +1,16 @@
 """Shared test setup: Hypothesis profiles, offscreen Qt, and a throwaway config path for every test."""
 import gc
 import os
+import sys
 import tempfile
 from pathlib import Path
 
 import pytest
 from hypothesis import HealthCheck, settings
 
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # tests must never open windows on the user's desktop
+if sys.platform != "win32":
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")  # tests must never open windows on the user's desktop
+# (Windows uses its real desktop: the frameless-window code needs real window handles, and CI has a desktop.)
 # ...nor click, grab hotkeys or open connections there. X11 tests start their own Xvfb. (Also: python-xlib shares
 # extension event tables between Display objects, so a connection to the desktop breaks a later one to Xvfb.)
 for _var in ("DISPLAY", "WAYLAND_DISPLAY", "XDG_SESSION_TYPE"):

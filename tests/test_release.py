@@ -126,7 +126,7 @@ def test_diagnose_output_survives_a_windowed_exe(monkeypatch, tmp_path):
     diagnose._ensure_output()
     print("expected ≈(1, 2)")
     sys.stdout.flush()
-    assert raw.getvalue() == b"expected ?(1, 2)" + b"\n"
+    assert raw.getvalue().rstrip() == b"expected ?(1, 2)"
 
 
 # --- packaging files must agree with the app ---
