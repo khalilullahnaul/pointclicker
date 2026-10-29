@@ -122,7 +122,9 @@ class Target:
     def find_window(self) -> Any:
         if not self.window_class:
             return None
-        return clicker.FindWindowW(self.window_class, self.window_title) or clicker.FindWindowW(self.window_class, None)
+        # Class AND title: falling back to any window of the class clicked into another window of the same app
+        # (another browser or editor window) when this one closed. A renamed window is "not found"; edit the title.
+        return clicker.FindWindowW(self.window_class, self.window_title)
 
     def click(self, abort: threading.Event | None = None, check_effect: bool = False) -> clicker.ClickResult:
         return get_backend().click(self, abort=abort, check_effect=check_effect)

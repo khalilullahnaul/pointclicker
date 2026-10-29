@@ -371,7 +371,7 @@ class WindowsInputBackend(InputBackend):
         return _window_class(handle)
 
     def find_window(self, class_name: str | None, title: str | None = None) -> Any:
-        return FindWindowW(class_name, title) or (FindWindowW(class_name, None) if title else None)
+        return FindWindowW(class_name, title)  # title None matches any; a given title must match exactly
 
     def is_window_minimized(self, handle: Any) -> bool:
         return bool(IsIconic(handle))

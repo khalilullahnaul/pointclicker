@@ -84,7 +84,9 @@ def assert_fits(win, page):
             assert r.top() >= -1 and r.bottom() <= win.height(), f"{type(b).__name__} {b.text()!r} at {r} cut off"
     for area in [page, *page.findChildren(QAbstractScrollArea)]:
         if isinstance(area, QAbstractScrollArea) and area.isVisible():
-            assert area.horizontalScrollBar().maximum() == 0, f"horizontal scrolling in {type(area).__name__}"
+            cols = ([area.columnWidth(i) for i in range(area.columnCount())] if hasattr(area, "columnWidth") else "")
+            assert area.horizontalScrollBar().maximum() == 0, \
+                f"horizontal scrolling in {type(area).__name__} (viewport {area.viewport().width()}) {cols}"
 
 
 # --- navigation and layout ---
@@ -283,7 +285,8 @@ def test_theme_and_accent(app_window, qtbot):
     s.accent.colorChanged.emit(QColor("#e81123"))
     assert themeColor().name() == "#e81123" and c.cfg.accent == "#e81123"
     s._reset_accent()
-    assert c.cfg.accent == "" and themeColor().name() == "#0078d4"
+    from pointclicker.ui.style import system_accent
+    assert c.cfg.accent == "" and themeColor().name() == system_accent().name()  # Windows: the user's accent
 
 
 def test_hotkey_recording_rebinds_and_suspends_hotkeys(app_window, qtbot):

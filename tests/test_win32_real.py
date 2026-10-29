@@ -1,4 +1,4 @@
-"""Real clicks on real Windows: a test window in another process counts what arrives. Runs only on Windows (CI's
+"""Real clicks on real Windows: a plain Win32 test window in another process counts what arrives. Runs only on Windows (CI's
 windows-latest runner has an interactive desktop); the mocked call-sequence tests are in test_windows_backend.py."""
 import json
 import queue
@@ -16,6 +16,7 @@ from pointclicker.targets import Target
 pytestmark = [pytest.mark.integration,
               pytest.mark.skipif(sys.platform != "win32", reason="real Win32 clicks need Windows")]
 COUNTER = Path(__file__).with_name("win32_clickcounter.py")
+WINDOW_CLASS = "PointClickerTestWindow"  # win32_clickcounter.CLASS_NAME
 PARK = (5, 5)  # where the pointer waits; nothing of ours is there
 
 
@@ -31,12 +32,6 @@ class Counter:
         assert ready["ev"] == "ready", ready
         self.hwnd = ready["hwnd"]
         time.sleep(0.3)  # let the window manager finish showing it
-
-    def send(self, cmd: str):
-        self.proc.stdin.write(cmd + "\n")
-        self.proc.stdin.flush()
-        while self.events.get(timeout=5)["ev"] != "ok":
-            pass
 
     def presses(self, settle: float = 0.5) -> list[dict]:
         out = []
@@ -87,7 +82,7 @@ def park(b):
 
 
 def target_for(c: Counter, rel, **kw) -> Target:
-    return Target(rel_x=rel[0], rel_y=rel[1], window_class="TkTopLevel", window_title=c.title, **kw)
+    return Target(rel_x=rel[0], rel_y=rel[1], window_class=WINDOW_CLASS, window_title=c.title, **kw)
 
 
 def run(t: Target, clicks: int, timeout=15.0):
@@ -101,7 +96,7 @@ def run(t: Target, clicks: int, timeout=15.0):
 
 
 def screen_point(b, c: Counter, rel):
-    r = b.window_rect(b.find_window("TkTopLevel", c.title))
+    r = b.window_rect(b.find_window(WINDOW_CLASS, c.title))
     return r.left + rel[0], r.top + rel[1]
 
 

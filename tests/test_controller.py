@@ -159,11 +159,11 @@ class ControllerTest(unittest.TestCase):
         import winreg
 
         from pointclicker.controller import RUN_KEY
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:  # leave a real machine as it was
-            try:
+        try:  # leave a real machine as it was (a fresh profile has no Run key at all: set_ must create it)
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, RUN_KEY) as key:
                 saved = winreg.QueryValueEx(key, "PointClicker")[0]
-            except FileNotFoundError:
-                saved = None
+        except FileNotFoundError:
+            saved = None
         try:
             set_launch_at_login(True)
             self.assertTrue(launch_at_login_enabled())
