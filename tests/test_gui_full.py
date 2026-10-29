@@ -468,3 +468,110 @@ def test_live_refresh_never_paints_synchronously(app_window, qtbot):
     win.targets_page.tick()
     assert not painted, f"synchronous repaint during tick: {painted}"
     qtbot.waitUntil(lambda: "ProgressRing" in painted, timeout=2000)  # ...but the rings do repaint afterwards
+
+
+# --- pick overlay: frozen screenshot + magnifier ---
+
+def _desktop_image(w, h, dots):
+    from PySide6.QtGui import QColor, QImage
+    img = QImage(w, h, QImage.Format_RGB32)
+    img.fill(QColor("white"))
+    for (x, y), color in dots.items():
+        img.setPixelColor(x, y, QColor(color))
+    return img
+
+
+def _rgb(img, x, y):
+    c = img.pixelColor(x, y)
+    return c.red(), c.green(), c.blue()
+
+
+def _pick_layer(qtbot, monkeypatch, wayland):
+    from PySide6.QtGui import QGuiApplication
+
+    from pointclicker import overlay
+    set_backend(FakeBackend())
+    geo = QGuiApplication.primaryScreen().geometry()
+    shot = _desktop_image(geo.width(), geo.height(), {(200, 150): "red", (5, 5): "blue"})
+    if wayland:
+        monkeypatch.setattr(overlay.QGuiApplication, "platformName", staticmethod(lambda: "wayland"))
+        monkeypatch.setattr(overlay, "portal_screenshot", lambda: shot)
+    else:
+        monkeypatch.setattr(overlay, "grab_screen", lambda s: shot)
+    o = overlay.PickOverlay()
+    o.start()
+    assert o.active
+    qtbot.waitUntil(lambda: bool(o._layers), timeout=3000)  # Wayland: after the screenshot thread reports back
+    layer = o._layers[0]
+    qtbot.waitExposed(layer)
+    QTest.mouseMove(layer, QPoint(100, 100))  # a move to where the mouse already is sends no event
+    QTest.mouseMove(layer, QPoint(200, 150))
+    qtbot.waitUntil(lambda: layer._pos == QPoint(200, 150))
+    return o, layer
+
+
+@pytest.mark.parametrize("wayland", [False, True])
+def test_picker_shows_the_real_screen_and_magnifies_the_exact_pixel(qtbot, monkeypatch, wayland):
+    """Picking used to dim the whole screen (black on some compositors): the user couldn't see what to pick."""
+    from pointclicker.overlay import LOUPE_PX, LOUPE_ZOOM
+    o, layer = _pick_layer(qtbot, monkeypatch, wayland)
+    img = layer.grab().toImage()
+    assert _rgb(img, 5, 5) == (0, 0, 255)  # the screenshot, undimmed
+    assert _rgb(img, 600, 500) == (255, 255, 255)
+    half = LOUPE_PX // 2
+    cx, cy = 220 + half * LOUPE_ZOOM + LOUPE_ZOOM // 2, 170 + half * LOUPE_ZOOM + LOUPE_ZOOM // 2
+    assert _rgb(img, cx, cy) == (255, 0, 0), "the boxed loupe pixel is the one under the pointer"
+    assert _rgb(img, cx + LOUPE_ZOOM, cy) == (255, 255, 255)  # its neighbour, magnified 8x
+    QTest.mouseClick(layer, Qt.RightButton, pos=QPoint(200, 150))
+    assert not o.active
+
+
+def test_picker_falls_back_to_a_dimmed_live_screen_without_a_screenshot(qtbot, monkeypatch):
+    from pointclicker import overlay
+    set_backend(FakeBackend())
+    monkeypatch.setattr(overlay, "grab_screen", lambda s: None)
+    o = overlay.PickOverlay()
+    o.start()
+    assert o._layers and o._layers[0].shot is None
+    QTest.keyClick(o._layers[0], Qt.Key_Escape)
+    assert not o.active
+
+
+def test_split_desktop_handles_hidpi_and_side_by_side_screens():
+    from types import SimpleNamespace
+
+    from PySide6.QtCore import QRect
+
+    from pointclicker.overlay import split_desktop
+    screens = [SimpleNamespace(name=lambda: "A", geometry=lambda: QRect(0, 0, 100, 50)),
+               SimpleNamespace(name=lambda: "B", geometry=lambda: QRect(100, 0, 50, 50))]
+    shots = split_desktop(_desktop_image(300, 100, {(0, 0): "red", (200, 0): "blue"}), screens)  # 2x pixels
+    assert (shots["A"].width(), shots["A"].height(), shots["B"].width(), shots["B"].height()) == (200, 100, 100, 100)
+    assert _rgb(shots["A"], 0, 0) == (255, 0, 0) and _rgb(shots["B"], 0, 0) == (0, 0, 255)
+    assert split_desktop(None, screens) == {}
+
+
+def test_portal_screenshot_deletes_the_file_the_portal_saved(tmp_path, monkeypatch):
+    from pointclicker import overlay
+    from pointclicker.platform.linux import portal
+    saved = tmp_path / "Screenshot from now.png"
+    assert _desktop_image(4, 3, {}).save(str(saved))
+    asked = []
+
+    class FakePortal:
+        def request(self, interface, method, sig, *args, timeout):
+            asked.append((interface, method, args[-1]["interactive"]))
+            return {"uri": ("s", saved.as_uri())}
+
+        def close(self):
+            pass
+    monkeypatch.setattr(portal, "Portal", FakePortal)
+    img = overlay.portal_screenshot()
+    assert (img.width(), img.height()) == (4, 3) and not saved.exists()
+    assert asked == [("org.freedesktop.portal.Screenshot", "Screenshot", ("b", False))]
+
+    class Denied(FakePortal):
+        def request(self, *a, **k):
+            raise portal.PortalError("Screenshot: denied by the user (code 1)")
+    monkeypatch.setattr(portal, "Portal", Denied)
+    assert overlay.portal_screenshot() is None  # falls back to the live screen
