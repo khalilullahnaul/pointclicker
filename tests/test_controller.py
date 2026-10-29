@@ -37,7 +37,7 @@ class ControllerTest(unittest.TestCase):
         set_hotkey_backend(self.hotkeys)
         self.c = AppController(targets.Config())
         self.events = []
-        for name in ("targets_changed", "state_changed", "notify", "profiles_changed", "suggest_foreground",
+        for name in ("targets_changed", "target_updated", "state_changed", "notify", "profiles_changed", "suggest_foreground",
                      "pick_requested"):
             getattr(self.c, name).connect(lambda *a, n=name: self.events.append((n, *a)))
 
@@ -60,7 +60,9 @@ class ControllerTest(unittest.TestCase):
         self.c.delete_target(self.c.targets[1].id)
         saved = targets.load(self.cfg_file)
         self.assertEqual([(x.name, x.x) for x in saved.targets], [("renamed", 5)])
-        self.assertGreaterEqual(self.names().count("targets_changed"), 5)
+        # list changes (add, duplicate, delete) re-render the list; edits/enables update just that card
+        self.assertEqual(self.names().count("targets_changed"), 3)
+        self.assertEqual([e[1] for e in self.events if e[0] == "target_updated"], [t.id, t.id])
 
     def test_run_controls_emit_state_and_toasts(self):
         self.c.start()  # nothing enabled yet

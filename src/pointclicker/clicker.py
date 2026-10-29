@@ -98,16 +98,24 @@ def snapshot(hwnd: Any) -> bytes | None:
     return get_backend().snapshot(hwnd)
 
 
-def SetWindowPos(hwnd: Any, *args, **kwargs) -> bool:
+def SetWindowPos(hwnd: Any, *args: Any, **kwargs: Any) -> bool:
     return get_backend().set_window_pos(hwnd, *args, **kwargs)
 
 
 # Re-export Win32 DLL handles ONLY on Windows to prevent breaking scripts like test_apps.py
 if sys.platform == "win32":
     from .platform.windows.input import (
-        advapi32,
-        gdi32,
-        kernel32,
-        shcore,
-        user32,
+        advapi32 as advapi32,
+    )
+    from .platform.windows.input import (
+        gdi32 as gdi32,
+    )
+    from .platform.windows.input import (
+        kernel32 as kernel32,
+    )
+    from .platform.windows.input import (
+        shcore as shcore,
+    )
+    from .platform.windows.input import (
+        user32 as user32,
     )

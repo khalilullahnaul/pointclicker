@@ -4,9 +4,29 @@ from __future__ import annotations
 from PySide6.QtCore import QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import QFormLayout, QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import (Action, BodyLabel, CaptionLabel, CardWidget, ComboBox, FluentIcon as FIF, IconWidget, InfoBadge, LineEdit, MessageBoxBase,
-                            PrimaryPushButton, ProgressRing, RoundMenu, ScrollArea, SegmentedWidget, SubtitleLabel,
-                            SwitchButton, TitleLabel, ToolTipFilter, TransparentToolButton, themeColor)
+from qfluentwidgets import (
+    Action,
+    BodyLabel,
+    CaptionLabel,
+    CardWidget,
+    ComboBox,
+    IconWidget,
+    InfoBadge,
+    LineEdit,
+    MessageBoxBase,
+    PrimaryPushButton,
+    ProgressRing,
+    RoundMenu,
+    ScrollArea,
+    SegmentedWidget,
+    SubtitleLabel,
+    SwitchButton,
+    TitleLabel,
+    ToolTipFilter,
+    TransparentToolButton,
+    themeColor,
+)
+from qfluentwidgets import FluentIcon as FIF
 
 from ..targets import _CHOICES, Target
 from .style import GRID, AppIcon, level_color
@@ -50,18 +70,16 @@ class TargetCard(CardWidget):
         self.setMinimumHeight(GRID * 9)
 
         self.badge = NumberBadge(number)
-        self.name = ElidedStrong(t.name)
-        where = f"{t.x}, {t.y}" + (f"  ·  {t.window_title or t.window_class}" if t.window_class else "  ·  screen point")
-        self.detail = ElidedCaption(where)
+        self.name = ElidedStrong()
+        self.detail = ElidedCaption()
         self.status = CaptionLabel()
         text = QVBoxLayout()
         text.setSpacing(2)
         for w in (self.name, self.detail, self.status):
             text.addWidget(w)
 
-        self.interval = CaptionLabel(interval_text(t))
-        light, dark = (themeColor(), themeColor()) if t.mode == "background" else (QColor("#5f5f5f"), QColor("#9f9f9f"))
-        self.mode = InfoBadge.custom(("Double · " if t.click_type == "double" else "") + t.mode.capitalize(), light, dark)
+        self.interval = CaptionLabel()
+        self.mode = InfoBadge.custom("", themeColor(), themeColor())
         self.meta = QWidget()
         meta = QVBoxLayout(self.meta)
         meta.setContentsMargins(0, 0, 0, 0)
@@ -73,28 +91,17 @@ class TargetCard(CardWidget):
         self.ring.setFixedSize(GRID * 4, GRID * 4)
         self.ring.setStrokeWidth(4)
         self.ring.setTextVisible(False)
-        self.ring.setRange(0, 1000)
+        self.ring.setRange(0, 200)
         self.countdown = BodyLabel("–")
         self.countdown.setMinimumWidth(GRID * 6)
         self.clicks = CaptionLabel()
         self.clicks.setMinimumWidth(GRID * 7)
 
-        self.actions = QWidget()
-        acts = QHBoxLayout(self.actions)
-        acts.setContentsMargins(0, 0, 0, 0)
-        acts.setSpacing(0)
-        for icon, tip, slot in self._action_specs():
-            b = TransparentToolButton(icon)
-            b.setToolTip(tip)
-            b.installEventFilter(ToolTipFilter(b))
-            b.clicked.connect(slot)
-            acts.addWidget(b)
-        self.actions.setVisible(False)  # hover actions; the context menu offers the same
+        self.actions: QWidget | None = None  # hover buttons, built on first hover (a big share of a card's cost)
 
         self.switch = SwitchButton()
         self.switch.setOnText("")
         self.switch.setOffText("")
-        self.switch.setChecked(t.enabled)
         self.switch.checkedChanged.connect(lambda on: self.c.set_enabled(self.t.id, on))
         self.switch.setToolTip("Enabled")
 
@@ -107,9 +114,29 @@ class TargetCard(CardWidget):
         row.addWidget(self.ring)
         row.addWidget(self.countdown)
         row.addWidget(self.clicks)
-        row.addWidget(self.actions)
+        self._actions_at = row.count()
         row.addWidget(self.switch)
+        self._row = row
         self.clicked.connect(lambda: self.edit_requested.emit(self.t.id))
+        self.set_target(number, t)
+
+    def set_target(self, number: int, t: Target):
+        """Show (possibly edited) target data in place: cheaper than rebuilding, and keeps hover/focus state."""
+        self.t = t
+        if self.badge.number != number:
+            self.badge.number = number
+            self.badge.update()
+        self.name.set_full_text(t.name)
+        self.detail.set_full_text(f"{t.x}, {t.y}" + (f"  ·  {t.window_title or t.window_class}" if t.window_class
+                                                     else "  ·  screen point"))
+        self.interval.setText(interval_text(t))
+        self.mode.setText(("Double · " if t.click_type == "double" else "") + t.mode.capitalize())
+        light, dark = (themeColor(), themeColor()) if t.mode == "background" else (QColor("#5f5f5f"), QColor("#9f9f9f"))
+        self.mode.setCustomBackgroundColor(light, dark)
+        if self.switch.isChecked() != t.enabled:
+            self.switch.blockSignals(True)  # reflect the model; this isn't the user toggling
+            self.switch.setChecked(t.enabled)
+            self.switch.blockSignals(False)
         self.refresh()
 
     def _action_specs(self):
@@ -120,24 +147,57 @@ class TargetCard(CardWidget):
                 (FIF.DELETE, "Delete", lambda: self.c.delete_target(tid))]
 
     def refresh(self):
-        """Live parts only: countdown, ring, clicks, status."""
+        """Live parts only: countdown, ring, clicks, status. Runs 4x a second for every visible card while the
+        scheduler thread needs the GIL to click on time, so only what actually changed is touched (setTextColor
+        re-applies a style sheet; ring repaints are Python paintEvents)."""
         left, st = self.c.remaining(self.t.id), self.c.stats(self.t.id)
-        self.countdown.setText(fmt_seconds(left))
-        self.ring.setValue(int(self.c.progress(self.t) * 1000))
         n = st.clicks if st else 0
         plural = (self.t.repeat or n) != 1  # "1 / 8 clicks", "1 click", "0 clicks"
-        self.clicks.setText(f"{n}{f' / {self.t.repeat}' if self.t.repeat else ''} click{'s' * plural}")
         text, level = self.c.status(self.t)
-        if text != self.status.text():
+        live = (fmt_seconds(left), int(self.c.progress(self.t) * 200),
+                f"{n}{f' / {self.t.repeat}' if self.t.repeat else ''} click{'s' * plural}", text, level)
+        last = getattr(self, "_live", (None,) * 5)
+        if live == last:
+            return
+        self._live = live
+        if live[0] != last[0]:
+            self.countdown.setText(live[0])
+        if live[1] != last[1]:
+            # QProgressBar.setValue() repaints synchronously (paint + flush to the display) while holding the GIL:
+            # ~4 ms per ring, which stalled the scheduler thread's clicks by up to 40 ms. Updates off makes that
+            # repaint a no-op; turning them back on schedules an ordinary deferred update().
+            self.ring.setUpdatesEnabled(False)
+            self.ring.setValue(live[1])  # 0..200: finer than a 32 px ring can show
+            self.ring.setUpdatesEnabled(True)
+        if live[2] != last[2]:
+            self.clicks.setText(live[2])
+        if text != last[3]:
             self.status.setText(text)
-        self.status.setTextColor(QColor(level_color(level)), QColor(level_color(level)))
+        if level != last[4]:
+            self.status.setTextColor(QColor(level_color(level)), QColor(level_color(level)))
+
+    def ensure_actions(self) -> QWidget:
+        if self.actions is None:
+            self.actions = QWidget()
+            acts = QHBoxLayout(self.actions)
+            acts.setContentsMargins(0, 0, 0, 0)
+            acts.setSpacing(0)
+            for icon, tip, slot in self._action_specs():
+                b = TransparentToolButton(icon)
+                b.setToolTip(tip)
+                b.installEventFilter(ToolTipFilter(b))
+                b.clicked.connect(slot)
+                acts.addWidget(b)
+            self._row.insertWidget(self._actions_at, self.actions)
+        return self.actions
 
     def enterEvent(self, e):
-        self.actions.setVisible(True)
+        self.ensure_actions().setVisible(True)
         super().enterEvent(e)
 
     def leaveEvent(self, e):
-        self.actions.setVisible(False)
+        if self.actions is not None:
+            self.actions.setVisible(False)
         super().leaveEvent(e)
 
     def contextMenuEvent(self, e):
@@ -162,6 +222,7 @@ class TargetsPage(QWidget):
         self.setObjectName("targets")
         self.c = controller
         self.cards: list[TargetCard] = []
+        self.limit = self.BATCH  # cards are created lazily: more as the user scrolls toward the end
 
         self.title = TitleLabel("Targets")
         self.subtitle = CaptionLabel()
@@ -186,6 +247,9 @@ class TargetsPage(QWidget):
         self.scroll.setWidget(self.list)
         self.scroll.setWidgetResizable(True)
         self.scroll.enableTransparentBackground()
+        bar = self.scroll.verticalScrollBar()
+        bar.valueChanged.connect(self._maybe_load_more)
+        bar.rangeChanged.connect(lambda *_: self._maybe_load_more(bar.value()))  # list shorter than the view
 
         self.empty = self._empty_state()
 
@@ -199,7 +263,8 @@ class TargetsPage(QWidget):
 
         controller.targets_changed.connect(self.rebuild)
         controller.profiles_changed.connect(self.rebuild)
-        controller.target_updated.connect(self.tick)
+        controller.target_updated.connect(self.update_target)
+        controller.target_clicked.connect(self.refresh_target)
         self.rebuild()
 
     def _empty_state(self) -> QWidget:
@@ -222,25 +287,56 @@ class TargetsPage(QWidget):
         v.addStretch()
         return w
 
+    BATCH = 30
+
+    def _maybe_load_more(self, value: int):
+        bar = self.scroll.verticalScrollBar()
+        if len(self.cards) < len(self.c.targets) and value >= bar.maximum() - self.scroll.viewport().height():
+            self.limit += self.BATCH
+            self.rebuild()
+
     def rebuild(self):
-        for card in self.cards:
-            card.deleteLater()
+        """Reconcile cards with the target list: keep existing cards, create/delete only what changed.
+        Only the first `limit` targets get cards; scrolling near the end loads the next batch."""
+        old = {card.t.id: card for card in self.cards}
         self.cards = []
-        for i, t in enumerate(self.c.targets, 1):
-            card = TargetCard(i, t, self.c)
-            card.edit_requested.connect(self.edit_requested)
-            self.list_layout.insertWidget(i - 1, card)
+        for i, t in enumerate(self.c.targets[:self.limit], 1):
+            card = old.pop(t.id, None)
+            if card is None:
+                card = TargetCard(i, t, self.c)
+                card.edit_requested.connect(self.edit_requested)
+            else:
+                card.set_target(i, t)
+            self.list_layout.insertWidget(i - 1, card)  # moves an existing card into place
             self.cards.append(card)
+        for card in old.values():
+            card.deleteLater()
         empty = not self.cards
         self.empty.setVisible(empty)
         self.scroll.setVisible(not empty)
         self.add_btn.setVisible(not empty)
-        n = len(self.cards)
+        n = len(self.c.targets)
         self.subtitle.setText(f"Profile “{self.c.cfg.active_profile}” · {n} target{'s' * (n != 1)}")
+
+    def update_target(self, target_id: str):
+        for i, card in enumerate(self.cards):
+            if card.t.id == target_id:
+                if t := self.c.find(target_id):
+                    card.set_target(i + 1, t)
+                return
+
+    def refresh_target(self, target_id: str):
+        """After a click: thousands per second are possible, so only an on-screen card does any work."""
+        for card in self.cards:
+            if card.t.id == target_id:
+                if not card.visibleRegion().isEmpty():
+                    card.refresh()
+                return
 
     def tick(self, *_):
         for card in self.cards:
-            card.refresh()
+            if not card.visibleRegion().isEmpty():  # with hundreds of targets, only on-screen cards matter
+                card.refresh()
         self.command_bar.tick()
 
 

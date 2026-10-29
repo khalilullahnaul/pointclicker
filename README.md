@@ -382,6 +382,8 @@ Read [Safety and fair use](#safety-and-fair-use) first.
 git clone https://github.com/khalilullahnaul/pointclicker.git && cd pointclicker
 uv sync --extra dev          # or: python -m venv .venv && pip install -e ".[dev]"
 uv run pytest                # unit, scheduler, platform, controller and UI tests (UI runs offscreen)
+make test-quick              # Linux, under a minute: everything but the slow tests, incl. ruff + mypy --strict
+make test-all                # full Hypothesis runs, Xvfb integration, chaos, then a 30-min soak compressed 60x
 uv run pointclicker --diagnose
 ```
 

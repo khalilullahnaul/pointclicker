@@ -26,6 +26,7 @@ if sys.platform != "win32":
 else:
     import ctypes
     from ctypes import wintypes
+
     from pointclicker.clicker import user32
 
     HERE = Path(__file__).resolve().parent
@@ -144,6 +145,6 @@ if __name__ == "__main__":
     head = ("App", "Background", "Auto-detect said", "Foreground", "Verdict")
     widths = [max(len(str(r[i])) for r in [head, *rows]) for i in range(len(head))]
     for r in [head, *rows]:
-        print("  ".join(str(c).ljust(w) for c, w in zip(r, widths)))
+        print("  ".join(str(c).ljust(w) for c, w in zip(r, widths, strict=True)))
     print("\ncursor restored after every click:", "yes" if not moved else "NO\n  " + "\n  ".join(moved))
     print("Paste this output back to update the README's tested-apps section.")

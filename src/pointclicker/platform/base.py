@@ -4,8 +4,12 @@ import logging
 import threading
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..clicker import ClickResult, Mode
 
 log = logging.getLogger(__name__)
 EFFECT_SETTLE_S = 0.5  # how long a clicked window gets to visibly react before the "after" snapshot
@@ -33,7 +37,7 @@ class InputBackend(ABC):
 
     @abstractmethod
     def click(self, target: Any, abort: threading.Event | None = None,
-              check_effect: bool = False, **kwargs) -> Any:
+              check_effect: bool = False, **kwargs: Any) -> ClickResult:
         """Perform a click for the given Target or (x, y) coordinate."""
         pass
 
@@ -95,10 +99,10 @@ class InputBackend(ABC):
     def snapshot(self, handle: Any) -> bytes | None:
         return None
 
-    def set_window_pos(self, handle: Any, *args, **kwargs) -> bool:
+    def set_window_pos(self, handle: Any, *args: Any, **kwargs: Any) -> bool:
         return False
 
-    def prepare(self) -> None:
+    def prepare(self) -> None:  # noqa: B027 - optional hook, most backends need nothing
         """Acquire anything that may need user interaction (e.g. a portal permission dialog). May block."""
 
     def monitors(self) -> list[Rect]:
@@ -106,11 +110,12 @@ class InputBackend(ABC):
 
     # --- shared click flow for backends that implement _perform() ---
 
-    def _perform(self, x: int, y: int, mode, button: str, double: bool, window: Any) -> str | None:
+    def _perform(self, x: int, y: int, mode: Mode, button: str, double: bool, window: Any) -> str | None:
         """Do one click. Returns an error message or None. Called with the global click lock held."""
         raise NotImplementedError
 
-    def _run_click(self, target: Any, abort: threading.Event | None, check_effect: bool, kwargs: dict):
+    def _run_click(self, target: Any, abort: threading.Event | None, check_effect: bool,
+                   kwargs: dict[str, Any]) -> ClickResult:
         from ..clicker import CANCELLED, ClickResult, Mode
 
         if hasattr(target, "resolve"):
@@ -146,7 +151,7 @@ class InputBackend(ABC):
                 return ClickResult(False, mode, CANCELLED)
             t0 = time.monotonic()
             try:
-                error = self._perform(*pos, mode, button, double, window)
+                error = self._perform(pos[0], pos[1], mode, button, double, window)
             except Exception as e:  # backend I/O errors (X connection, D-Bus) become a failed click
                 log.exception("%s click at %s raised", mode.value, pos)
                 error = str(e) or type(e).__name__
@@ -168,6 +173,24 @@ class InputBackend(ABC):
         time.sleep(0.3)
         b = self.snapshot(handle)
         return b if a is not None and a == b else None
+
+
+_MODIFIERS = {"ctrl": "ctrl", "control": "ctrl", "alt": "alt", "shift": "shift",
+              "super": "super", "win": "super", "meta": "super", "cmd": "super"}
+_ALIASES = {"esc": "escape", "enter": "return", "del": "delete", "ins": "insert", "pgup": "page_up",
+            "pageup": "page_up", "pgdn": "page_down", "pagedown": "page_down"}
+
+def parse_combo(combo: str) -> tuple[frozenset[str], str]:
+    """'Ctrl+Alt+F6' -> ({'ctrl', 'alt'}, 'f6'). Raises ValueError."""
+    parts = [p for p in combo.lower().replace(" ", "").split("+") if p]
+    if not parts:
+        raise ValueError("empty hotkey")
+    *mods, key = parts
+    if bad := [m for m in mods if m not in _MODIFIERS]:
+        raise ValueError(f"unknown modifier {bad[0]!r} in {combo!r}")
+    if key in _MODIFIERS:
+        raise ValueError(f"{combo!r} has no key besides modifiers")
+    return frozenset(_MODIFIERS[m] for m in mods), _ALIASES.get(key, key)
 
 
 class HotkeyBackend(ABC):

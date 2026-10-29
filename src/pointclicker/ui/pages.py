@@ -3,13 +3,30 @@ from __future__ import annotations
 
 import sys
 
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QColor, QDesktopServices, QIcon
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QTableWidgetItem, QVBoxLayout, QWidget
-from qfluentwidgets import (BodyLabel, CaptionLabel, CardWidget, FluentIcon as FIF, IconWidget, InfoBadge, LineEdit,
-                            MessageBox, MessageBoxBase, PrimaryPushButton, PushButton, ScrollArea, SimpleCardWidget,
-                            StrongBodyLabel, SubtitleLabel, TableWidget, TitleLabel, ToolTipFilter,
-                            TransparentToolButton)
+from qfluentwidgets import (
+    BodyLabel,
+    CaptionLabel,
+    CardWidget,
+    IconWidget,
+    InfoBadge,
+    LineEdit,
+    MessageBox,
+    MessageBoxBase,
+    PrimaryPushButton,
+    PushButton,
+    ScrollArea,
+    SimpleCardWidget,
+    StrongBodyLabel,
+    SubtitleLabel,
+    TableWidget,
+    TitleLabel,
+    ToolTipFilter,
+    TransparentToolButton,
+)
+from qfluentwidgets import FluentIcon as FIF
 
 from .. import targets as targets_mod
 from ..controller import LOG_DIR
@@ -60,8 +77,10 @@ class RunPage(QWidget):
         self.table.setSelectionMode(QAbstractItemView.NoSelection)
         self.table.setBorderRadius(GRID)
         self.table.setBorderVisible(True)
+        # Fixed widths sized once per rebuild: "resize to contents" re-measures a column over every row on each
+        # cell change, which made rewriting a 500-row table take minutes.
         header = self.table.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(QHeaderView.Interactive)
         header.setSectionResizeMode(0, QHeaderView.Stretch)
         header.setSectionResizeMode(5, QHeaderView.Stretch)
 
@@ -75,17 +94,36 @@ class RunPage(QWidget):
         layout.addWidget(self.command_bar)
         layout.addWidget(self.table, 1)
         controller.targets_changed.connect(self.rebuild)
+        controller.target_updated.connect(self._update_row)
         controller.profiles_changed.connect(self.rebuild)
         self.rebuild()
 
-    def rebuild(self):
+    def rebuild(self, *_):
         ts = self.c.targets
+        self.table.setUpdatesEnabled(False)
         self.table.setRowCount(len(ts))
         for r, t in enumerate(ts):
-            for col, text in enumerate([t.name, interval_text(t).removeprefix("Every "),
-                                        t.mode.capitalize() + (" ×2" if t.click_type == "double" else ""), "", "", ""]):
-                self.table.setItem(r, col, QTableWidgetItem(text))
+            self._fill_row(r, t)
+        for col in (1, 2, 3, 4):
+            self.table.resizeColumnToContents(col)
+        self.table.setUpdatesEnabled(True)
         self.tick()
+
+    def _fill_row(self, r, t):
+        for col, text in enumerate([t.name, interval_text(t).removeprefix("Every "),
+                                    t.mode.capitalize() + (" ×2" if t.click_type == "double" else ""), "", "", ""]):
+            item = self.table.item(r, col)
+            if item is None:
+                self.table.setItem(r, col, QTableWidgetItem(text))
+            elif col < 3 and item.text() != text:
+                item.setText(text)
+
+    def _update_row(self, target_id: str):
+        for r, t in enumerate(self.c.targets):
+            if t.id == target_id:
+                self._fill_row(r, t)
+                self.tick()
+                return
 
     def tick(self, *_):
         for r, t in enumerate(self.c.targets):

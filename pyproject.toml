@@ -22,6 +22,12 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
     "pyinstaller>=6.0.0",
+    "hypothesis>=6.170.13",
+    "pytest-qt>=4.5.0",
+    "pytest-timeout>=2.4.0",
+    "ruff>=0.17.3",
+    "mypy>=2.4.0",
+    "psutil>=7.2.2",
 ]
 
 [project.scripts]
@@ -33,3 +39,43 @@ pointclicker = ["*.ico", "ui/icons/*.svg"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+timeout = 300  # a deadlock fails the test instead of hanging the run
+markers = [
+    "slow: thorough but slow (full Hypothesis runs, big loads)",
+    "integration: real X server (Xvfb) needed; started automatically",
+    "gui: Qt widgets (pytest-qt, offscreen)",
+    "chaos: concurrency and failure-injection tests",
+    "soak: long-running leak and drift test",
+]
+filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+files = [  # core modules, held to --strict; the Qt UI and OS backends are checked by tests instead
+    "src/pointclicker/scheduler.py",
+    "src/pointclicker/targets.py",
+    "src/pointclicker/clicker.py",
+    "src/pointclicker/platform/__init__.py",
+    "src/pointclicker/platform/base.py",
+    "src/pointclicker/platform/fake.py",
+]
+strict = true
+
+[[tool.mypy.overrides]]
+module = ["pynput.*", "Xlib.*", "evdev.*", "jeepney.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
+
+[[tool.mypy.overrides]]  # imported by core modules but not part of the strict set
+module = ["pointclicker.platform.linux.*", "pointclicker.platform.windows.*"]
+follow_imports = "silent"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["build", "graphify-out", ".tools"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I", "UP"]
+ignore = ["E501"]  # long lines are a style call, not a bug

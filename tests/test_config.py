@@ -1,6 +1,5 @@
 """Tests for platformdirs config paths and automatic legacy migration."""
 import json
-import os
 import shutil
 import sys
 import tempfile
@@ -10,8 +9,7 @@ from unittest.mock import patch
 
 import platformdirs
 
-from pointclicker import targets
-from pointclicker.targets import Config, Target, _migrate_legacy_config, config_path, load, save
+from pointclicker.targets import Config, Target, config_path, load
 
 
 class ConfigMigrationTest(unittest.TestCase):

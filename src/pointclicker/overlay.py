@@ -9,9 +9,10 @@ from PySide6.QtWidgets import QWidget
 from qfluentwidgets import isDarkTheme, themeColor
 
 from . import clicker
-from .targets import Target
+from .targets import Target, resolve_all
 
 HWND_TOPMOST = -1
+MARKER_BATCH = 50
 SWP_NOSIZE_NOACTIVATE = 0x0001 | 0x0010
 
 
@@ -185,13 +186,38 @@ class MarkerLayer(QObject):
     def __init__(self):
         super().__init__()
         self._markers: list[_Marker] = []
+        self._placed: dict[int, tuple[int, int] | None] = {}  # id(marker) -> last position
+        self._pending: list[tuple[int, Target]] = []  # markers still to create
         self._timer = QTimer(self, interval=500, timeout=self._refresh)
 
     def show_targets(self, targets: list[Target]):
-        self.clear()
-        self._markers = [_Marker(i, t) for i, t in enumerate(targets, 1)]
-        self._refresh()
+        """Reconcile with the target list, reusing marker windows (each is a top-level window: costly to create)."""
+        old = {m.target.id: m for m in self._markers}
+        self._markers, pending = [], []
+        for i, t in enumerate(targets, 1):
+            if m := old.pop(t.id, None):
+                if (m.number, m.target) != (i, t):
+                    m.number, m.target = i, t
+                    m.update()
+                self._markers.append(m)
+            else:
+                pending.append((i, t))
+        for m in old.values():
+            self._placed.pop(id(m), None)
+            m.close()
+            m.deleteLater()
+        self._pending = pending
+        self._create_some()
         self._timer.start()
+
+    def _create_some(self):
+        """Marker windows are created MARKER_BATCH per event-loop turn, so hundreds don't freeze the UI."""
+        batch, self._pending = self._pending[:MARKER_BATCH], self._pending[MARKER_BATCH:]
+        for i, t in batch:
+            self._markers.append(_Marker(i, t))
+        self._refresh()
+        if self._pending:
+            QTimer.singleShot(0, self._create_some)
 
     def clear(self):
         self._timer.stop()
@@ -199,10 +225,16 @@ class MarkerLayer(QObject):
             m.close()
             m.deleteLater()
         self._markers = []
+        self._placed = {}
+        self._pending = []
 
     def _refresh(self):
+        positions = resolve_all([m.target for m in self._markers])
         for m in self._markers:
-            pos = m.target.resolve()
+            pos = positions.get(m.target.id)
+            if pos == self._placed.get(id(m), ()) and m.isVisible() == (pos is not None):
+                continue  # unchanged: don't touch the window
+            self._placed[id(m)] = pos
             if pos is None:
                 m.hide()
             else:

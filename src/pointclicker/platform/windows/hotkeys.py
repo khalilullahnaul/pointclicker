@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import Callable
+from collections.abc import Callable
 
 from ..base import HotkeyBackend
 
