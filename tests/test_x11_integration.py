@@ -7,6 +7,10 @@ import sys
 import time
 
 import pytest
+
+if not sys.platform.startswith("linux"):
+    pytest.skip("X11 integration: Linux only", allow_module_level=True)
+
 from xserver import ClickCounter, start_xinerama, start_xvfb, wait_until, xvfb_binary
 
 from pointclicker.clicker import Mode
