@@ -21,7 +21,8 @@ from PySide6.QtCore import QObject, QTimer, Signal, Slot
 
 from . import clicker, targets
 from .platform import get_backend, get_hotkey_backend
-from .scheduler import State, Scheduler, Stats
+from .platform.base import EFFECT_SETTLE_S
+from .scheduler import Scheduler, State, Stats
 from .targets import Target
 
 log = logging.getLogger(__name__)
@@ -31,8 +32,9 @@ LOG_DIR = targets.config_path().parent / "logs"
 
 
 class AppController(QObject):
-    targets_changed = Signal()  # list or any target field changed: re-render
-    target_updated = Signal(str)  # one target clicked (stats/status changed)
+    targets_changed = Signal()  # targets added/removed/reordered or profile switched: re-render the list
+    target_updated = Signal(str)  # one target's fields changed (edit, enable): update just that target
+    target_clicked = Signal(str)  # a scheduled click happened: stats/status of that target changed
     state_changed = Signal(str)  # State value
     test_finished = Signal(str, object)  # target id, ClickResult
     suggest_foreground = Signal(str)  # target id whose background click had no visible effect
@@ -57,6 +59,7 @@ class AppController(QObject):
         self.no_effect: set[str] = set()  # background click changed nothing
         self._effect_checked: set[str] = set()
         self._combos: list[str] = []
+        self._save_failing = False
         self.scheduler = Scheduler(self._fire, on_click=lambda t: self._clicked.emit(t.id))
         self._clicked.connect(self._after_click)
         self._no_effect.connect(self._on_no_effect)
@@ -90,7 +93,21 @@ class AppController(QObject):
         self.hotkey_backend.stop()
 
     def save(self):
-        targets.save(self.cfg)
+        """Persist the config. A failed write (disk full, read-only, permissions) must not take the app down:
+        the old file stays intact (atomic save), the change lives on in memory, and the user is told once."""
+        try:
+            targets.save(self.cfg)
+        except OSError as e:
+            log.error("could not save settings: %s", e)
+            if not self._save_failing:
+                self.notify.emit("error", "Settings not saved",
+                                 f"{e.strerror or e}. Your changes are kept until you quit; free some space or "
+                                 "check permissions and they'll be saved with the next change.")
+            self._save_failing = True
+        else:
+            if self._save_failing:
+                self.notify.emit("success", "Settings saved", "Saving works again.")
+            self._save_failing = False
 
     # --- queries for rendering ---
 
@@ -226,7 +243,7 @@ class AppController(QObject):
                 self.targets[i] = t
                 if t.mode != "background":
                     self.no_effect.discard(t.id)
-                self._targets_changed()
+                self._targets_changed(t.id)
                 return
 
     @Slot(str)
@@ -243,17 +260,21 @@ class AppController(QObject):
     def set_enabled(self, target_id: str, on: bool):
         if (t := self.find(target_id)) and t.enabled != on:
             t.enabled = on
-            self._targets_changed()
+            self._targets_changed(t.id)
 
     @Slot(str)
     def use_foreground(self, target_id: str):
         if t := self.find(target_id):
             self.update_target(replace(t, mode="foreground"))
 
-    def _targets_changed(self):
+    def _targets_changed(self, only: str | None = None):
+        """Persist and reschedule, then tell the UI: one target (cheap, per-card update) or the whole list."""
         self.save()
         self.scheduler.sync(self.targets)
-        self.targets_changed.emit()
+        if only is None:
+            self.targets_changed.emit()
+        else:
+            self.target_updated.emit(only)
 
     @Slot()
     def pick_at_cursor(self):
@@ -268,7 +289,7 @@ class AppController(QObject):
         if t := self.find(target_id):
             self._effect_checked.discard(t.id)
             self.no_effect.discard(t.id)
-            threading.Thread(target=lambda: self._tested.emit(t.id, self._fire(t, None)),
+            threading.Thread(target=lambda: self._tested.emit(t.id, self._test_fire(t)),
                              name="test-click", daemon=True).start()
 
     def _after_test(self, target_id: str, res):
@@ -284,13 +305,33 @@ class AppController(QObject):
     # --- clicks (worker threads) ---
 
     def _fire(self, t: Target, abort):
-        """Scheduler / test thread. The first background click of each target per run is effect-checked."""
-        check = t.mode == "background" and t.id not in self._effect_checked
-        res = t.click(abort, check_effect=check)
-        if res.changed is not None:
-            self._effect_checked.add(t.id)
-            if res.changed is False:
-                self._no_effect.emit(t.id)
+        """Scheduler thread. The first background click of each target per run is effect-checked, without ever
+        making the scheduler wait: one quick snapshot before the click, the comparison later on a timer thread.
+        (Waiting here held up every other target: 25 background targets stalled all clicking for ~20 s.)"""
+        if t.mode != "background" or t.id in self._effect_checked:
+            return t.click(abort)
+        self._effect_checked.add(t.id)
+        window = t.find_window()
+        if window is None and (pos := t.resolve()):
+            window = self.backend.top_window_at(*pos)
+        before = self.backend.snapshot(window) if window is not None else None
+        res = t.click(abort)
+        if res.ok and before is not None:
+            timer = threading.Timer(EFFECT_SETTLE_S, self._finish_effect_check, (t.id, window, before))
+            timer.daemon = True
+            timer.start()
+        return res
+
+    def _finish_effect_check(self, target_id: str, window, before: bytes):
+        after = self.backend.snapshot(window)
+        if after is not None and after == before:
+            self._no_effect.emit(target_id)
+
+    def _test_fire(self, t: Target):
+        """"Test click now" (its own thread, the user is waiting for the answer): the full synchronous check."""
+        res = t.click(None, check_effect=t.mode == "background")
+        if res.changed is False:
+            self._no_effect.emit(t.id)
         return res
 
     def _after_click(self, target_id: str):
@@ -298,7 +339,7 @@ class AppController(QObject):
         if t and st and st.last_ok is False and "not found" in (st.last_error or "") and t.id not in self.lost:
             self.lost.add(t.id)
             self.notify.emit("warning", "Target window lost", f"{t.name}: {st.last_error}")
-        self.target_updated.emit(target_id)
+        self.target_clicked.emit(target_id)
 
     def _on_no_effect(self, target_id: str):
         if target_id not in self.no_effect:  # ask once per target

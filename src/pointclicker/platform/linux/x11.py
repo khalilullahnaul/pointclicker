@@ -28,6 +28,7 @@ class LinuxX11InputBackend(InputBackend):
         self._lock = threading.RLock()
         self._d = self._root = None
         self._error = None
+        self._found: dict[tuple[str, str | None], Any] = {}  # find_window cache, re-validated on every use
         try:
             from Xlib import display
             self._d = display.Display(display_name)
@@ -37,6 +38,7 @@ class LinuxX11InputBackend(InputBackend):
             # warps are then stale/ineffective, so we must know which X server this is.
             self.xwayland = "XWAYLAND" in self._d.list_extensions()  # has_extension() only knows modules python-xlib ships
             self._randr = self._d.has_extension("RANDR")
+            self._xinerama = self._d.has_extension("XINERAMA")
             self._atom = {n: self._d.intern_atom(n) for n in (
                 "_NET_CLIENT_LIST_STACKING", "_NET_CLIENT_LIST", "_NET_WM_NAME", "UTF8_STRING",
                 "_NET_WM_STATE", "_NET_WM_STATE_HIDDEN", "_NET_WM_PID", "WM_STATE")}
@@ -71,7 +73,8 @@ class LinuxX11InputBackend(InputBackend):
             for _ in range(2 if double else 1):
                 xtest.fake_input(self._d, X.ButtonPress, n)
                 xtest.fake_input(self._d, X.ButtonRelease, n)
-            self._root.warp_pointer(saved.root_x, saved.root_y)
+            # Restore onto the root the pointer was on: with several X screens it may be another screen's.
+            saved.root.warp_pointer(saved.root_x, saved.root_y)
             self._d.sync()
         return None
 
@@ -195,12 +198,23 @@ class LinuxX11InputBackend(InputBackend):
         except Exception:
             return ""
 
+    def _matches(self, w, class_name: str, title: str | None) -> bool:
+        return self.window_class(w) == class_name and (title is None or self.window_text(w) == title)
+
     def find_window(self, class_name: str | None, title: str | None = None) -> Any:
+        """Topmost window with this class (and title). A full scan costs ~2 round trips per top-level window,
+        and every click looks its window up, so the last hit is cached and only re-checked (2 round trips)."""
         if self._error or not class_name:
             return None
+        key = (class_name, title)
         with self._lock:
+            if (w := self._found.get(key)) is not None:
+                if self._matches(w, class_name, title):  # gone or renamed windows fail this (errors -> "")
+                    return w
+                del self._found[key]
             for w in reversed(self._clients()):  # topmost match first
-                if self.window_class(w) == class_name and (title is None or self.window_text(w) == title):
+                if self._matches(w, class_name, title):
+                    self._found[key] = w
                     return w
         return None
 
@@ -233,6 +247,16 @@ class LinuxX11InputBackend(InputBackend):
         if self._error:
             return []
         with self._lock:
+            # Xinerama, when active, describes the whole shared root (all heads). On a real Xinerama server RandR
+            # only knows the first screen; on modern Xorg Xinerama mirrors RandR's monitors, so prefer it.
+            if self._xinerama:
+                try:
+                    if self._d.xinerama_is_active():
+                        heads = self._d.xinerama_query_screens().screens
+                        if heads:
+                            return [Rect(h.x, h.y, h.x + h.width, h.y + h.height) for h in heads]
+                except Exception:
+                    pass
             if self._randr:
                 try:
                     return [Rect(m.x, m.y, m.x + m.width_in_pixels, m.y + m.height_in_pixels)

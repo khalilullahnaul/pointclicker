@@ -3,13 +3,25 @@ from __future__ import annotations
 
 import sys
 
+import darkdetect
 from PySide6.QtCore import QByteArray, QEvent, Qt, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon
-import darkdetect
-from qfluentwidgets import (Action, FluentIcon as FIF, FluentWindow, InfoBar, InfoBarPosition, MessageBox,
-                            NavigationItemPosition, SystemTrayMenu, TeachingTip, TeachingTipTailPosition, Theme,
-                            isDarkTheme, setTheme)
+from qfluentwidgets import (
+    Action,
+    FluentWindow,
+    InfoBar,
+    InfoBarPosition,
+    MessageBox,
+    NavigationItemPosition,
+    SystemTrayMenu,
+    TeachingTip,
+    TeachingTipTailPosition,
+    Theme,
+    isDarkTheme,
+    setTheme,
+)
+from qfluentwidgets import FluentIcon as FIF
 
 from ..controller import AppController
 from ..overlay import MarkerLayer, PickOverlay
@@ -31,6 +43,8 @@ class MainWindow(FluentWindow):
         self.c = c = controller
         self._restore_after_pick = False
         self._quitting = False
+        self._suggest_pending: list[str] = []
+        self._suggest_open = False
         self._first_show = True
         self.markers_supported = QApplication.platformName() != "wayland"  # native Wayland can't place windows
         self.setWindowTitle("PointClicker")
@@ -60,6 +74,7 @@ class MainWindow(FluentWindow):
         c.notify.connect(self.toast)
         c.suggest_foreground.connect(self._suggest_foreground)
         c.targets_changed.connect(self._apply_markers)
+        c.target_updated.connect(self._apply_markers)  # cheap: markers are reconciled, not rebuilt
         c.settings_changed.connect(self._apply_markers)
         c.state_changed.connect(self._update_tray)
 
@@ -105,21 +120,46 @@ class MainWindow(FluentWindow):
                                        duration=-1 if level == "error" else 4000,
                                        position=InfoBarPosition.TOP_RIGHT, parent=self)
 
+    SUGGEST_GATHER_MS = 400
+
     def _suggest_foreground(self, target_id: str):
-        t = self.c.find(target_id)
-        if not t:
+        """Suggestions arriving together (every background target's first click of a run) become one dialog,
+        and a dialog never opens while another is showing: stacking one modal dialog per target froze the UI."""
+        if target_id not in self._suggest_pending:
+            self._suggest_pending.append(target_id)
+        if not self._suggest_open:
+            QTimer.singleShot(self.SUGGEST_GATHER_MS, self._show_suggestions)
+
+    def _show_suggestions(self):
+        if self._suggest_open:
             return
+        found = [self.c.find(tid) for tid in self._suggest_pending]
+        self._suggest_pending = []
+        ts = [t for t in found if t and t.mode == "background"]
+        if not ts:
+            return
+        names = ", ".join(t.name for t in ts[:5]) + (f" and {len(ts) - 5} more" if len(ts) > 5 else "")
         if not self.isVisible():
-            self.toast("warning", "Background click had no effect", f"{t.name}: consider foreground mode.")
+            self.toast("warning", "Background click had no effect", f"{names}: consider foreground mode.")
             return
+        one = len(ts) == 1
         box = MessageBox("Background click had no effect?",
-                         f"{t.name}: the window didn't change after a background click. Games, browsers and many "
-                         "modern apps ignore background clicks.\n\nSwitch it to foreground mode? Foreground clicks "
-                         "briefly move the real pointer. If the click did work, keep background.", self)
+                         f"{names}: the window didn't change after a background click. Games, browsers and many "
+                         f"modern apps ignore background clicks.\n\nSwitch {'it' if one else 'them'} to foreground "
+                         "mode? Foreground clicks briefly move the real pointer. If the click did work, keep background.",
+                         self)
         box.yesButton.setText("Use foreground")
         box.cancelButton.setText("Keep background")
-        if box.exec():
-            self.c.use_foreground(target_id)
+        self._suggest_open = True
+        try:
+            accepted = box.exec()
+        finally:
+            self._suggest_open = False
+        if accepted:
+            for t in ts:
+                self.c.use_foreground(t.id)
+        if self._suggest_pending:  # more arrived while the dialog was open
+            QTimer.singleShot(0, self._show_suggestions)
 
     # --- picking and editing ---
 

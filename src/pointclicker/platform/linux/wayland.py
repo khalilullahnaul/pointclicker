@@ -32,7 +32,7 @@ def token_path() -> Path:
 
 
 class LinuxWaylandInputBackend(InputBackend):
-    def __init__(self):
+    def __init__(self) -> None:
         self._lock = threading.RLock()
         self._x = None  # XWayland connection: window lookup for X11 apps only
         if os.environ.get("DISPLAY"):
@@ -112,7 +112,8 @@ class LinuxWaylandInputBackend(InputBackend):
         log.info("RemoteDesktop portal session started, monitors %s", [r for _, r in self._streams])
 
     def _start_uinput(self):
-        from evdev import AbsInfo, UInput, ecodes as e
+        from evdev import AbsInfo, UInput
+        from evdev import ecodes as e
 
         mons = self.monitors()
         if not mons:

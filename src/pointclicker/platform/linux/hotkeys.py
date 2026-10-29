@@ -10,16 +10,12 @@ import os
 import re
 import select
 import threading
-from typing import Callable
+from collections.abc import Callable
 
-from ..base import HotkeyBackend
+from ..base import HotkeyBackend, parse_combo
 
 log = logging.getLogger(__name__)
 
-_MODIFIERS = {"ctrl": "ctrl", "control": "ctrl", "alt": "alt", "shift": "shift",
-              "super": "super", "win": "super", "meta": "super", "cmd": "super"}
-_ALIASES = {"esc": "escape", "enter": "return", "del": "delete", "ins": "insert", "pgup": "page_up",
-            "pageup": "page_up", "pgdn": "page_down", "pagedown": "page_down"}
 # our key name -> X keysym name (also the xkb names the GlobalShortcuts portal expects)
 _KEYSYMS = {"escape": "Escape", "return": "Return", "delete": "Delete", "insert": "Insert", "page_up": "Prior",
             "page_down": "Next", "space": "space", "tab": "Tab", "backspace": "BackSpace", "home": "Home",
@@ -28,19 +24,6 @@ _KEYSYMS = {"escape": "Escape", "return": "Return", "delete": "Delete", "insert"
 # our key name -> evdev KEY_* suffix where it differs
 _EVDEV = {"escape": "ESC", "return": "ENTER", "page_up": "PAGEUP", "page_down": "PAGEDOWN",
           "print": "SYSRQ", "scroll_lock": "SCROLLLOCK"}
-
-
-def parse_combo(combo: str) -> tuple[frozenset[str], str]:
-    """'Ctrl+Alt+F6' -> ({'ctrl', 'alt'}, 'f6'). Raises ValueError."""
-    parts = [p for p in combo.lower().replace(" ", "").split("+") if p]
-    if not parts:
-        raise ValueError("empty hotkey")
-    *mods, key = parts
-    if bad := [m for m in mods if m not in _MODIFIERS]:
-        raise ValueError(f"unknown modifier {bad[0]!r} in {combo!r}")
-    if key in _MODIFIERS:
-        raise ValueError(f"{combo!r} has no key besides modifiers")
-    return frozenset(_MODIFIERS[m] for m in mods), _ALIASES.get(key, key)
 
 
 def keysym_name(key: str) -> str:
@@ -96,11 +79,13 @@ class X11Hotkeys(_Base):
             raise ValueError(f"unknown key in {combo!r}")
 
     def start(self) -> None:
-        from Xlib import X, XK, display, error
+        from Xlib import XK, X, display, error
         if self._running:
             return
         d = display.Display()
-        root = d.screen().root
+        # Grab on every X screen's root: with focus following the pointer, a grab on one screen only fires
+        # while the pointer is on that screen.
+        roots = [d.screen(i).root for i in range(d.screen_count())]
         masks = {"ctrl": X.ControlMask, "alt": X.Mod1Mask, "shift": X.ShiftMask, "super": X.Mod4Mask}
         numlock = self._modifier_mask(d, XK.XK_Num_Lock)
         locks = sorted({0, X.LockMask, numlock, numlock | X.LockMask})
@@ -117,8 +102,9 @@ class X11Hotkeys(_Base):
                 continue
             mask = sum(masks[m] for m in mods)
             catch = error.CatchError(error.BadAccess)
-            for lock in locks:
-                root.grab_key(keycode, mask | lock, True, X.GrabModeAsync, X.GrabModeAsync, onerror=catch)
+            for root in roots:
+                for lock in locks:
+                    root.grab_key(keycode, mask | lock, True, X.GrabModeAsync, X.GrabModeAsync, onerror=catch)
             d.sync()
             if catch.get_error():
                 self.taken.append(combo)
@@ -126,7 +112,7 @@ class X11Hotkeys(_Base):
             else:
                 table[(keycode, mask)] = combo
         self._wake = os.pipe()
-        self._thread = threading.Thread(target=self._loop, args=(d, root, table), name="x11-hotkeys", daemon=True)
+        self._thread = threading.Thread(target=self._loop, args=(d, roots, table), name="x11-hotkeys", daemon=True)
         self._thread.start()
         self._running = True
 
@@ -138,24 +124,28 @@ class X11Hotkeys(_Base):
                 return 1 << index
         return 0
 
-    def _loop(self, d, root, table):
+    def _loop(self, d, roots, table):
         from Xlib import X
         relevant = X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod4Mask
-        last_release: dict[int, int] = {}
+        prev = None  # (type, keycode, time) of the previous key event
         try:
             while True:
                 if self._wake[0] in select.select([d.fileno(), self._wake[0]], [], [])[0]:
                     return
                 while d.pending_events():
                     ev = d.next_event()
-                    if ev.type == X.KeyRelease:
-                        last_release[ev.detail] = ev.time
-                    # auto-repeat shows up as release+press with the same timestamp; act on real presses only
-                    elif ev.type == X.KeyPress and last_release.get(ev.detail) != ev.time:
+                    if ev.type not in (X.KeyPress, X.KeyRelease):
+                        continue
+                    # Auto-repeat is a release *immediately* followed by a press of the same key with the same
+                    # timestamp. Comparing with any earlier release would also swallow quick, real presses.
+                    repeat = prev == (X.KeyRelease, ev.detail, ev.time)
+                    prev = (ev.type, ev.detail, ev.time)
+                    if ev.type == X.KeyPress and not repeat:
                         if combo := table.get((ev.detail, ev.state & relevant)):
                             self._fire(combo)
         finally:
-            root.ungrab_key(X.AnyKey, X.AnyModifier)
+            for root in roots:
+                root.ungrab_key(X.AnyKey, X.AnyModifier)
             d.close()
 
     def stop(self) -> None:

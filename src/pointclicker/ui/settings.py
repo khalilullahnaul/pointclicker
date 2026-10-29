@@ -5,8 +5,16 @@ import sys
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QVBoxLayout, QWidget
-from qfluentwidgets import (ColorPickerButton, ComboBox, FluentIcon as FIF, MessageBox, PushButton, SettingCardGroup,
-                            SwitchButton, TransparentPushButton)
+from qfluentwidgets import (
+    ColorPickerButton,
+    ComboBox,
+    MessageBox,
+    PushButton,
+    SettingCardGroup,
+    SwitchButton,
+    TransparentPushButton,
+)
+from qfluentwidgets import FluentIcon as FIF
 
 from ..controller import ACTIONS
 from .pages import _page

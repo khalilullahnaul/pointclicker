@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import threading
 import time
-from dataclasses import dataclass, field
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
-from .base import HotkeyBackend, InputBackend, Rect
+from .base import HotkeyBackend, InputBackend, Rect, parse_combo
 
 
 @dataclass
@@ -23,7 +24,7 @@ class RecordedClick:
 class FakeBackend(InputBackend):
     """In-memory backend for testing without triggering physical OS events."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.clicks: list[RecordedClick] = []
         self._cursor_pos: tuple[int, int] = (100, 200)
         self._mouse_held: bool = False
@@ -32,7 +33,7 @@ class FakeBackend(InputBackend):
         self.fail_targets: dict[str, str] = {}  # target id -> error message
 
     def click(self, target: Any, abort: threading.Event | None = None,
-              check_effect: bool = False, **kwargs) -> Any:
+              check_effect: bool = False, **kwargs: Any) -> Any:
         # Import lazily to avoid circular imports
         from ..clicker import ClickResult, Mode
 
@@ -96,7 +97,8 @@ class FakeBackend(InputBackend):
 
     def window_rect(self, handle: Any) -> Rect | None:
         if handle in self.windows:
-            return self.windows[handle].get("rect", Rect(100, 100, 800, 600))
+            rect: Rect = self.windows[handle].get("rect", Rect(100, 100, 800, 600))
+            return rect
         return Rect(100, 100, 800, 600) if handle else None
 
     def is_mouse_button_held(self) -> bool:
@@ -128,10 +130,10 @@ class FakeBackend(InputBackend):
         self.clicks.clear()
 
     def window_text(self, handle: Any) -> str:
-        return self.windows.get(handle, {}).get("title", "Test Window")
+        return str(self.windows.get(handle, {}).get("title", "Test Window"))
 
     def window_class(self, handle: Any) -> str:
-        return self.windows.get(handle, {}).get("class", "TestClass")
+        return str(self.windows.get(handle, {}).get("class", "TestClass"))
 
     def find_window(self, class_name: str | None, title: str | None = None) -> Any:
         for hwnd, info in self.windows.items():
@@ -141,13 +143,13 @@ class FakeBackend(InputBackend):
         return None
 
     def is_window_minimized(self, handle: Any) -> bool:
-        return self.windows.get(handle, {}).get("minimized", False)
+        return bool(self.windows.get(handle, {}).get("minimized", False))
 
     def is_admin(self) -> bool:
         return False
 
     def blocked_by_elevation(self, handle: Any) -> bool:
-        return self.windows.get(handle, {}).get("elevated", False)
+        return bool(self.windows.get(handle, {}).get("elevated", False))
 
     def snapshot(self, handle: Any) -> bytes | None:
         return b"fake_pixel_data"
@@ -156,7 +158,7 @@ class FakeBackend(InputBackend):
 class FakeHotkeyBackend(HotkeyBackend):
     """In-memory hotkey backend for testing."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.registered: dict[str, Callable[[], None]] = {}
         self.started: bool = False
 
@@ -171,6 +173,9 @@ class FakeHotkeyBackend(HotkeyBackend):
 
     def stop(self) -> None:
         self.started = False
+
+    def validate(self, combo: str) -> None:
+        parse_combo(combo)  # syntax only: the base check imports pynput, which needs an X display on Linux
 
     def trigger(self, combo: str) -> bool:
         """Helper to invoke a registered hotkey."""

@@ -40,8 +40,10 @@ def create_backend(session_type: str | None = None) -> InputBackend:
         log.info("Selected platform backend: Fake (In-Memory)")
         return FakeBackend()
 
-    if sys.platform == "win32" or st == "windows":
-        from .windows import WindowsInputBackend
+    if st == "windows" and sys.platform != "win32":
+        raise RuntimeError("the Windows backend only runs on Windows")
+    if sys.platform == "win32":
+        from .windows.input import WindowsInputBackend
         log.info("Selected platform backend: Windows")
         return WindowsInputBackend()
 
@@ -62,8 +64,10 @@ def create_hotkey_backend(session_type: str | None = None) -> HotkeyBackend:
     if st == "fake":
         return FakeHotkeyBackend()
 
-    if sys.platform == "win32" or st == "windows":
-        from .windows import WindowsHotkeyBackend
+    if st == "windows" and sys.platform != "win32":
+        raise RuntimeError("the Windows backend only runs on Windows")
+    if sys.platform == "win32":
+        from .windows.hotkeys import WindowsHotkeyBackend
         return WindowsHotkeyBackend()
 
     from .linux import create_linux_hotkeys

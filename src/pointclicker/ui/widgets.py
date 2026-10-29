@@ -4,9 +4,19 @@ from __future__ import annotations
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QAbstractButton, QHBoxLayout, QSizePolicy, QVBoxLayout, QWidget
-from qfluentwidgets import (BodyLabel, CaptionLabel, CompactDoubleSpinBox, CompactSpinBox, FluentIcon as FIF,
-                            PrimaryPushButton, PushButton, SettingCard, SimpleCardWidget, StrongBodyLabel,
-                            ToolTipFilter)
+from qfluentwidgets import (
+    BodyLabel,
+    CaptionLabel,
+    CompactDoubleSpinBox,
+    CompactSpinBox,
+    PrimaryPushButton,
+    PushButton,
+    SettingCard,
+    SimpleCardWidget,
+    StrongBodyLabel,
+    ToolTipFilter,
+)
+from qfluentwidgets import FluentIcon as FIF
 
 from ..scheduler import State
 from .style import GRID, AppIcon

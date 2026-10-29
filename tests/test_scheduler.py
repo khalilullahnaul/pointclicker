@@ -1,4 +1,5 @@
 """Scheduler timing tests with a fake clock. Run: python -m unittest discover tests"""
+import itertools
 import random
 import threading
 import unittest
@@ -114,7 +115,7 @@ class SchedulerTest(unittest.TestCase):
         sim = Sim()
         sim.s.start([Target(name="a", interval=100, jitter_pct=20)])
         sim.advance(100_000)
-        gaps = [b - a for a, b in zip(sim.times("a"), sim.times("a")[1:])]
+        gaps = [b - a for a, b in itertools.pairwise(sim.times("a"))]
         self.assertTrue(all(80 <= g <= 120 for g in gaps), gaps)
         self.assertGreater(len(set(gaps)), 10)  # actually random
 

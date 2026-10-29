@@ -1,23 +1,19 @@
 """Tests for platform abstraction layer, backends, factory and fake backend."""
-import logging
 import sys
 import unittest
 from unittest.mock import patch
 
+from pointclicker.clicker import Mode
 from pointclicker.platform import (
     FakeBackend,
     FakeHotkeyBackend,
-    InputBackend,
-    HotkeyBackend,
     Rect,
     create_backend,
-    create_hotkey_backend,
     detect_session_type,
     get_backend,
     set_backend,
 )
 from pointclicker.targets import Target
-from pointclicker.clicker import Mode, ClickResult
 
 
 class PlatformBackendTest(unittest.TestCase):
