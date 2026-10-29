@@ -1,0 +1,42 @@
+name: Bug report
+description: Something doesn't click, crashes or looks wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting! The diagnostics below usually show the cause right away.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      placeholder: "Clicks into Notepad do nothing in background mode; I expected the caret to move."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Pick a point in ...
+        2. Set the interval to ...
+        3. Press Start
+  - type: textarea
+    id: diagnose
+    attributes:
+      label: Output of `pointclicker --diagnose`
+      description: "Windows: run `PointClicker.exe --diagnose` from a terminal in the install folder (%LOCALAPPDATA%\\Programs\\PointClicker)."
+      render: text
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options: [Windows installer, Windows portable zip, AppImage / install.sh, .deb, From source]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: PointClicker version (About page)
+      placeholder: "0.1.0"

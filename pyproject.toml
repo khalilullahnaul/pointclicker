@@ -1,12 +1,30 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]  # PEP 639 license metadata
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pointclicker"
 dynamic = ["version"]
 requires-python = ">=3.11"
-description = "Cross-platform auto-clicker for scheduled on-screen clicks"
+description = "Free auto clicker for Windows and Linux (X11 and Wayland): many points, each on its own schedule, background clicks"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "Khalil Ullah Naul"}]
+keywords = ["auto clicker", "autoclicker", "mouse clicker", "click automation", "mouse automation", "windows",
+            "linux", "wayland", "x11", "background click", "scheduled clicks"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: Microsoft :: Windows :: Windows 10",
+    "Operating System :: Microsoft :: Windows :: Windows 11",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Desktop Environment",
+    "Topic :: Utilities",
+]
 dependencies = [
     "platformdirs>=4.0.0",
     "pynput>=1.7.0",
@@ -29,6 +47,13 @@ dev = [
     "mypy>=2.4.0",
     "psutil>=7.2.2",
 ]
+
+[project.urls]
+Homepage = "https://khalilullahnaul.github.io/pointclicker/"
+Download = "https://github.com/khalilullahnaul/pointclicker/releases/latest"
+Source = "https://github.com/khalilullahnaul/pointclicker"
+Issues = "https://github.com/khalilullahnaul/pointclicker/issues"
+Changelog = "https://github.com/khalilullahnaul/pointclicker/releases"
 
 [project.scripts]
 pointclicker = "pointclicker.ui:main"

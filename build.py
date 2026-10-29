@@ -61,7 +61,8 @@ def pyinstaller_args() -> list[str]:
 def smoke() -> bool:
     """Run the built app's --diagnose. It must get through every check and print its result line: a crash
     (missing module, Qt plugin, DLL...) shows up as a traceback or no result. On Linux it runs in its own Xvfb."""
-    env, server = dict(os.environ), None
+    env, server = dict(os.environ, PYTHONIOENCODING="utf-8"), None  # the app's report, decoded as UTF-8 below
+    sys.stdout.reconfigure(errors="replace")  # a Windows console is cp1252: never die printing the report
     if not WINDOWS:
         sys.path.insert(0, str(ROOT / "tests"))
         from xserver import start_xvfb, xvfb_binary

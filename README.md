@@ -1,20 +1,34 @@
 <div align="center">
 
-<img src="docs/images/icon.png" width="72" alt="">
+<img src="docs/images/icon.png" width="80" alt="PointClicker logo">
 
-# PointClicker
+# PointClicker: free auto clicker for Windows and Linux
 
-**A modern auto-clicker for fixed points on screen.**
-Each point clicks on its own schedule, follows its window when the window moves, and on Windows and X11 can even click without moving your mouse.
+**Click many points on screen, each on its own schedule.**<br>
+Clicks follow their window when it moves, and on Windows and X11 they can happen in the background, without moving your mouse. Works on Wayland too.
 
-![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB)
+[![Latest release](https://img.shields.io/github/v/release/khalilullahnaul/pointclicker?label=download&color=0067c0)](https://github.com/khalilullahnaul/pointclicker/releases/latest)
+[![CI](https://github.com/khalilullahnaul/pointclicker/actions/workflows/ci.yml/badge.svg)](https://github.com/khalilullahnaul/pointclicker/actions/workflows/ci.yml)
+[![Downloads](https://img.shields.io/github/downloads/khalilullahnaul/pointclicker/total?color=2ea44f)](https://github.com/khalilullahnaul/pointclicker/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-f5c518)](LICENSE)
 ![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4)
 ![Linux X11 / Wayland](https://img.shields.io/badge/Linux-X11%20%7C%20Wayland-FCC624)
 
-<img src="docs/images/targets-light.png" width="49%" alt="Targets page, light theme">
-<img src="docs/images/targets-dark.png" width="49%" alt="Targets page, dark theme">
+**[Download for Windows](https://github.com/khalilullahnaul/pointclicker/releases/latest)** · **[Download for Linux](https://github.com/khalilullahnaul/pointclicker/releases/latest)** · [Website](https://khalilullahnaul.github.io/pointclicker/) · [FAQ](#faq)
+
+<img src="docs/images/targets-light.png" width="49%" alt="PointClicker Targets page (light theme): click targets with schedules, countdowns and click counts">
+<img src="docs/images/targets-dark.png" width="49%" alt="PointClicker Targets page (dark theme)">
 
 </div>
+
+## Install in one line
+
+| | |
+|---|---|
+| **Windows** (PowerShell) | `irm https://raw.githubusercontent.com/khalilullahnaul/pointclicker/main/install.ps1 \| iex` |
+| **Linux** (no sudo) | `curl -fsSL https://raw.githubusercontent.com/khalilullahnaul/pointclicker/main/install.sh \| sh` |
+
+Both download the latest release, check it against its SHA-256 checksum and install it for your user only. Prefer clicking? Use the [installer, portable zip, AppImage or .deb](#installation).
 
 ---
 
@@ -29,7 +43,8 @@ Each point clicks on its own schedule, follows its window when the window moves,
 - [Background vs. foreground clicks](#background-vs-foreground-clicks)
 - [Platform notes](#platform-notes): [Windows](#windows-1) · [Linux X11](#linux-x11) · [Linux Wayland](#linux-wayland)
 - [Diagnostics, logs and files](#diagnostics-logs-and-files)
-- [Troubleshooting / FAQ](#troubleshooting--faq)
+- [FAQ](#faq)
+- [Troubleshooting](#troubleshooting)
 - [Safety and fair use](#safety-and-fair-use)
 - [Known limitations](#known-limitations)
 - [For developers](#for-developers)
@@ -72,7 +87,7 @@ Each point clicks on its own schedule, follows its window when the window moves,
 
 ## Installation
 
-Download the latest version from the **[Releases page](https://github.com/khalilullahnaul/pointclicker/releases/latest)**. Every release has a `SHA256SUMS.txt` to verify the downloads.
+Download the latest version from the **[Releases page](https://github.com/khalilullahnaul/pointclicker/releases/latest)**, or use the [one-line installers](#install-in-one-line). Every release has a `SHA256SUMS.txt` to verify the downloads.
 
 ### Windows
 
@@ -83,7 +98,7 @@ Download the latest version from the **[Releases page](https://github.com/khalil
 
 **Installer:**
 
-1. Run `PointClicker-Setup-x.y.z.exe`. Windows may show a blue **"Windows protected your PC"** screen (SmartScreen): see [below](#windows-windows-protected-your-pc-smartscreen).
+1. Run `PointClicker-Setup-x.y.z.exe`. Windows may show a blue **"Windows protected your PC"** screen (SmartScreen) because the app isn't code-signed yet: click **More info**, then **Run anyway** (more in [Troubleshooting](#troubleshooting)).
 2. Optionally tick **Create a desktop shortcut** and **Start PointClicker when I sign in to Windows**.
 3. PointClicker is installed in `%LOCALAPPDATA%\Programs\PointClicker` and appears in the Start menu.
 
@@ -325,7 +340,41 @@ It prints your session type (Windows / X11 / Wayland / XWayland), the click and 
 - **Saving is safe:** a crash mid-save can't corrupt `config.json`.
 - **Unreadable config:** if the file can't be read, it's moved aside to `config.bad.json` instead of being overwritten.
 
-## Troubleshooting / FAQ
+## FAQ
+
+### What is PointClicker?
+
+PointClicker is a free, open-source auto clicker for Windows 10/11 and Linux (X11 and Wayland). It clicks fixed points on screen, each on its own schedule (interval, start delay, repeat count and optional random jitter), and follows the target window when it moves.
+
+### Is PointClicker free and safe to download?
+
+Yes. It's free and [MIT-licensed](LICENSE), the source code is right here, and every release is built from this source by public [GitHub Actions](https://github.com/khalilullahnaul/pointclicker/actions/workflows/ci.yml), with SHA-256 checksums published next to the downloads. Windows SmartScreen may warn because the app isn't code-signed yet: click **More info**, then **Run anyway**.
+
+### Can an auto clicker click without moving my mouse?
+
+Yes, on Windows and on Linux X11. Background mode sends the click straight to the target window, even if other windows cover it, and your mouse never moves. Some apps, including many games and browsers, ignore such clicks. For those, use foreground mode, which moves the pointer, clicks and puts it back.
+
+### Does PointClicker work on Wayland?
+
+Yes. On Wayland (GNOME, KDE Plasma and others) it clicks through the desktop's Remote Desktop portal, which asks for permission once. Wayland doesn't let apps click in the background or restore the pointer, so clicks are foreground clicks there. See [Linux Wayland](#linux-wayland).
+
+### Can I auto click several points at different intervals?
+
+Yes. Every target has its own interval in seconds, minutes or hours, its own start delay and repeat count, and optional random jitter. One point can click every 30 seconds while another clicks every 5 minutes. [Profiles](#profiles-page) keep separate sets of targets.
+
+### How do I stop the auto clicker instantly?
+
+Press **F6** to start or pause, **F7** to stop, or **F8** for an emergency stop that also disables every target. These [hotkeys](#hotkeys) work while other apps are focused, and you can change them.
+
+### Is it safe to use an auto clicker in online games?
+
+Games with anti-cheat (Vanguard, Easy Anti-Cheat, BattlEye and others) can detect automated input and may ban your account. Don't use PointClicker, or any auto clicker, in those games. See [Safety and fair use](#safety-and-fair-use).
+
+### Does PointClicker run on macOS?
+
+No. It supports Windows 10 and 11 and Linux with X11 or Wayland.
+
+## Troubleshooting
 
 <details><summary><b>The click "succeeds" but nothing happens in the app</b></summary>
 
@@ -462,8 +511,8 @@ make build-linux             # dist/: AppImage + .deb (the built app is smoke-te
 | `packaging/linux/` | AppImage/`.deb` build script, desktop entry, uinput helper |
 | `src/pointclicker/updates.py` | About → Check for updates (latest GitHub release) |
 
-Bug reports are welcome: open an issue, and include your OS and the output of `pointclicker --diagnose`.
+Bug reports and ideas are welcome: [open an issue](https://github.com/khalilullahnaul/pointclicker/issues/new/choose) and include the output of `pointclicker --diagnose`. If PointClicker saves you time, a ⭐ helps other people find it.
 
 ## License
 
-No license has been chosen yet. Until one is added, all rights are reserved by the author.
+PointClicker is free and open source under the [MIT License](LICENSE).

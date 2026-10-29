@@ -1,0 +1,15 @@
+name: Feature request
+description: An idea that would make PointClicker more useful
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The task or situation, not just the feature. It helps find the best solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
