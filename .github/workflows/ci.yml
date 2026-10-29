@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with: {python-version: "3.12"}
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.3  # no floating major tags after v7
       - name: X servers and Qt's system libraries
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb xserver-xephyr $LINUX_QT_LIBS
       - run: uv sync --extra dev --locked
@@ -45,7 +45,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with: {python-version: "3.12"}
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.3  # no floating major tags after v7
       - run: uv sync --extra dev --locked
       - name: Full test suite, including real Win32 clicks (tests/test_win32_real.py)
         env: {HYPOTHESIS_PROFILE: all}
@@ -59,7 +59,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with: {python-version: "3.12"}
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.3  # no floating major tags after v7
       - run: uv sync --extra dev --locked
       - name: Version (a release tag must match pointclicker.__version__)
         id: v
@@ -117,7 +117,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with: {python-version: "3.12"}
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.3.3  # no floating major tags after v7
       - name: Xvfb (smoke test) and Qt's system libraries (bundled into the app)
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb $LINUX_QT_LIBS
       - run: uv sync --extra dev --locked
