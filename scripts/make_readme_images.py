@@ -13,8 +13,7 @@ sys.path.insert(0, str(ROOT / "src"))
 patch("pointclicker.targets.config_path", lambda: Path(tempfile.mkdtemp()) / "config.json").start()
 
 from PySide6.QtCore import QPoint, QPointF, QRectF, Qt  # noqa: E402
-from PySide6.QtGui import (QColor, QFont, QGuiApplication, QImage, QLinearGradient, QPainter,  # noqa: E402
-                           QPainterPath)
+from PySide6.QtGui import QColor, QFont, QGuiApplication, QImage, QLinearGradient, QPainter, QPainterPath  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 app = QApplication([])
