@@ -60,6 +60,8 @@ def test_ruff():
     assert out.returncode == 0, out.stdout + out.stderr
 
 
-def test_mypy_strict_core():
-    out = subprocess.run([_tool("mypy")], cwd=ROOT, capture_output=True, text=True, timeout=600)
+@pytest.mark.parametrize("platform", ["linux", "win32"])  # each platform's branches, wherever this runs
+def test_mypy_strict_core(platform):
+    out = subprocess.run([_tool("mypy"), "--platform", platform], cwd=ROOT, capture_output=True, text=True,
+                         timeout=600)
     assert out.returncode == 0, out.stdout + out.stderr

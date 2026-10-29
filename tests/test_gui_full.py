@@ -374,11 +374,13 @@ def test_many_suggestions_become_one_dialog(app_window, qtbot, answers):
 
 def test_tray_menu_and_minimize_to_tray(app_window, qtbot, monkeypatch):
     win, c, *_ = app_window
-    win.showMinimized()  # no system tray (offscreen): hiding would strand the window, so it must stay
+    tray = "pointclicker.ui.window.QSystemTrayIcon.isSystemTrayAvailable"
+    monkeypatch.setattr(tray, staticmethod(lambda: False))
+    win.showMinimized()  # no system tray: hiding would strand the window, so it must stay
     qtbot.wait(200)
     assert win.isVisible()
     win.showNormal()
-    monkeypatch.setattr("pointclicker.ui.window.QSystemTrayIcon.isSystemTrayAvailable", staticmethod(lambda: True))
+    monkeypatch.setattr(tray, staticmethod(lambda: True))
     actions = {a.text(): a for a in win.tray_menu.actions() if a.text()}
     actions["Start"].trigger()
     assert c.state is State.RUNNING
@@ -579,3 +581,20 @@ def test_portal_screenshot_deletes_the_file_the_portal_saved(tmp_path, monkeypat
             raise portal.PortalError("Screenshot: denied by the user (code 1)")
     monkeypatch.setattr(portal, "Portal", Denied)
     assert overlay.portal_screenshot() is None  # falls back to the live screen
+
+
+def test_schedule_table_fits_small_windows_with_wide_fonts(app_window, qtbot):
+    """Windows CI at 640x480: Segoe UI made the middle columns 527 px of a 533 px table, squeezing Target and
+    Last result to 20 px and scrolling sideways. Replay those widths; the table must fit and stay readable."""
+    from pointclicker.ui.style import GRID
+    win, *_ = app_window
+    win.resize(640, 480)
+    win.switchTo(win.run_page)
+    page = win.run_page
+    page._natural = dict(zip(page.FITTED, [129, 168, 139, 91], strict=True))
+    page._fit_columns()
+    qtbot.waitUntil(lambda: page.table.horizontalScrollBar().maximum() == 0)
+    widths = [page.table.columnWidth(i) for i in range(page.table.columnCount())]
+    assert widths[0] >= GRID * 12 - 1 and widths[5] >= GRID * 12 - 1, widths
+    win.resize(1400, 800)  # room again: natural widths come back
+    qtbot.waitUntil(lambda: [page.table.columnWidth(c) for c in page.FITTED] == [129, 168, 139, 91])

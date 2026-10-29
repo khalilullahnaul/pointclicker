@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 import threading
 
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import QEvent, Qt, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QIcon
 from PySide6.QtWidgets import QAbstractItemView, QHBoxLayout, QHeaderView, QTableWidgetItem, QVBoxLayout, QWidget
 from qfluentwidgets import (
@@ -58,6 +58,7 @@ def _page(name: str, title: str, subtitle: str = "") -> tuple[QWidget, QVBoxLayo
 
 class RunPage(QWidget):
     COLUMNS = ["Target", "Every", "Mode", "Next click", "Clicks", "Last result"]
+    FITTED = (1, 2, 3, 4)  # sized to their contents; Target and Last result share what is left
 
     def __init__(self, controller, parent=None):
         super().__init__(parent)
@@ -85,6 +86,8 @@ class RunPage(QWidget):
         header.setSectionResizeMode(QHeaderView.Interactive)
         header.setSectionResizeMode(0, QHeaderView.Stretch)
         header.setSectionResizeMode(5, QHeaderView.Stretch)
+        self._natural: dict[int, int] = {}  # content width of the middle columns, measured once per rebuild
+        self.table.viewport().installEventFilter(self)  # re-fit the columns when the table is resized
 
         top = QHBoxLayout()
         top.addWidget(TitleLabel("Schedule"), 1)
@@ -100,14 +103,33 @@ class RunPage(QWidget):
         controller.profiles_changed.connect(self.rebuild)
         self.rebuild()
 
+    def eventFilter(self, obj, e):
+        if e.type() == QEvent.Resize and obj is self.table.viewport():
+            self._fit_columns()
+        return super().eventFilter(obj, e)
+
+    def _fit_columns(self):
+        """Content widths when they fit; otherwise shrink the middle columns (their text elides) so the table never
+        scrolls sideways and Target / Last result stay readable. Windows fonts are wider than Linux ones."""
+        if not self._natural:
+            return
+        floor = GRID * 4  # narrowest a middle column gets
+        spare = self.table.viewport().width() - 2 * GRID * 12 - floor * len(self._natural)  # Target, Last result
+        flex = sum(max(0, w - floor) for w in self._natural.values())
+        k = min(1.0, max(spare, 0) / flex) if flex else 1.0
+        for col, width in self._natural.items():
+            self.table.setColumnWidth(col, width if width <= floor else floor + int((width - floor) * k))
+
     def rebuild(self, *_):
         ts = self.c.targets
         self.table.setUpdatesEnabled(False)
         self.table.setRowCount(len(ts))
         for r, t in enumerate(ts):
             self._fill_row(r, t)
-        for col in (1, 2, 3, 4):
+        for col in self.FITTED:
             self.table.resizeColumnToContents(col)
+            self._natural[col] = self.table.columnWidth(col)
+        self._fit_columns()
         self.table.setUpdatesEnabled(True)
         self.tick()
 

@@ -17,7 +17,7 @@ def to_pynput(combo: str) -> str:
 class WindowsHotkeyBackend(HotkeyBackend):
     """Windows global hotkey backend using pynput."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         if sys.platform != "win32":
             raise RuntimeError("WindowsHotkeyBackend is only supported on Windows")
         self._handlers: dict[str, Callable[[], None]] = {}
