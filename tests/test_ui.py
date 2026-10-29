@@ -1,12 +1,9 @@
-"""Fluent UI smoke tests (offscreen): pages build, small-window fit, dialog/field sync, hotkey recorder."""
-import os
+"""Fluent UI smoke tests (offscreen on Linux, see conftest.py): pages build, small-window fit, dialog/field sync, hotkey recorder."""
 import tempfile
 import unittest
 from dataclasses import fields
 from pathlib import Path
 from unittest.mock import patch
-
-os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402

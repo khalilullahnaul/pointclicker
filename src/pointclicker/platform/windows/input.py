@@ -257,7 +257,7 @@ if sys.platform == "win32":
 class WindowsInputBackend(InputBackend):
     """Windows input backend using Win32 API."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         if sys.platform != "win32":
             raise RuntimeError("WindowsInputBackend is only supported on Windows")
 
