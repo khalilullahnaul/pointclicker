@@ -44,6 +44,7 @@ PYEOF
 install_common() {  # root, app dir inside it
     install -Dm644 "$LINUX/pointclicker.desktop" "$1/usr/share/applications/pointclicker.desktop"
     install -Dm644 build/pointclicker.png "$1/usr/share/icons/hicolor/256x256/apps/pointclicker.png"
+    install -Dm644 build/pointclicker.png "$1/usr/share/pixmaps/pointclicker.png"
     mkdir -p "$1/$2"
     cp -a "$APP/." "$1/$2/"
     install -Dm755 "$LINUX/setup-uinput.sh" "$1/$2/setup-uinput.sh"
@@ -54,6 +55,7 @@ APPDIR=build/AppDir
 rm -rf "$APPDIR"
 install_common "$APPDIR" usr/lib/pointclicker
 cp "$LINUX/pointclicker.desktop" build/pointclicker.png "$APPDIR/"
+cp build/pointclicker.png "$APPDIR/.DirIcon"
 cat > "$APPDIR/AppRun" <<'RUN'
 #!/bin/sh
 HERE="$(dirname "$(readlink -f "$0")")"

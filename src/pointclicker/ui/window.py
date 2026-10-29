@@ -274,6 +274,16 @@ def main():
     from .style import apply_fonts
     setup_logging()
     app = QApplication(sys.argv)
+    app.setApplicationName("pointclicker")
+    app.setApplicationDisplayName("PointClicker")
+    app.setDesktopFileName("pointclicker")
+    app.setWindowIcon(QIcon(str(APP_ICON)))
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("PointClicker.App")
+        except Exception:
+            pass
     app.setQuitOnLastWindowClosed(False)  # we live in the tray; quitting is explicit
     apply_fonts(app)
     cfg = targets.load()

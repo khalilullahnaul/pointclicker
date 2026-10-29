@@ -16,15 +16,18 @@ APPIMAGE=$APP_DIR/PointClicker.AppImage
 DESKTOP=$DATA_DIR/applications/pointclicker.desktop
 ICON=$DATA_DIR/icons/hicolor/256x256/apps/pointclicker.png
 
+PIXMAP=$DATA_DIR/pixmaps/pointclicker.png
+
 say() { printf '%s\n' "$*"; }
 die() { printf 'pointclicker install: %s\n' "$*" >&2; exit 1; }
 
 refresh_menus() {
     command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$DATA_DIR/applications" 2>/dev/null || true
+    command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t "$DATA_DIR/icons/hicolor" 2>/dev/null || true
 }
 
 if [ "${1:-}" = "--uninstall" ]; then
-    rm -f "$APPIMAGE" "$DESKTOP" "$ICON"
+    rm -f "$APPIMAGE" "$DESKTOP" "$ICON" "$PIXMAP"
     [ -L "$BIN_DIR/pointclicker" ] && rm -f "$BIN_DIR/pointclicker"
     rmdir "$APP_DIR" 2>/dev/null || true
     refresh_menus
@@ -68,7 +71,9 @@ mkdir -p "$APP_DIR" "$BIN_DIR" "$(dirname "$DESKTOP")" "$(dirname "$ICON")"
 install -m 755 "$TMP/$NAME" "$APPIMAGE"
 ln -sf "$APPIMAGE" "$BIN_DIR/pointclicker"
 # the icon ships inside the AppImage; extracting a single file needs no FUSE
-(cd "$TMP" && "$APPIMAGE" --appimage-extract pointclicker.png >/dev/null 2>&1 && cp squashfs-root/pointclicker.png "$ICON") ||
+(cd "$TMP" && "$APPIMAGE" --appimage-extract pointclicker.png >/dev/null 2>&1 &&
+    cp squashfs-root/pointclicker.png "$ICON" &&
+    mkdir -p "$DATA_DIR/pixmaps" && cp squashfs-root/pointclicker.png "$PIXMAP") ||
     say "(couldn't extract the icon; the menu entry will use a generic one)"
 cat > "$DESKTOP" <<EOF
 [Desktop Entry]
