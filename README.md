@@ -22,7 +22,7 @@ Each point clicks on its own schedule, follows its window when the window moves,
 
 - [Features](#features)
 - [Requirements](#requirements)
-- [Installation](#installation): [Windows](#windows) · [Linux](#linux) · [Updating and uninstalling](#updating-and-uninstalling)
+- [Installation](#installation): [Windows](#windows) · [Linux](#linux) · [From source](#from-source-any-os) · [Updating and uninstalling](#updating-and-uninstalling)
 - [Quick start](#quick-start)
 - [Using PointClicker](#using-pointclicker): [Targets](#targets-page) · [Editing a target](#editing-a-target) · [Schedule / Run](#schedule--run-page) · [Profiles](#profiles-page) · [Settings](#settings-page) · [Tray](#system-tray)
 - [Hotkeys](#hotkeys)
@@ -50,7 +50,7 @@ Each point clicks on its own schedule, follows its window when the window moves,
 - **Live view.** Countdown rings, click counts and the last result for every target.
 - **Global hotkeys** that work while other apps are focused. You can rebind them by pressing the keys you want.
 - **Profiles:** separate sets of targets for different tasks.
-- **Pick-a-point overlay** with a crosshair and live coordinates, plus optional on-screen markers.
+- **Pick-a-point overlay:** a frozen view of your screen with a magnifier and live coordinates, for pixel-exact picks, plus optional on-screen markers.
 - **A Windows 11-style (Fluent) interface** on both Windows and Linux:
   - light, dark, or follow-the-OS theme, with your accent color;
   - usable from 100% to 200% scaling and in windows as small as 800×550.
@@ -72,61 +72,69 @@ Each point clicks on its own schedule, follows its window when the window moves,
 
 ## Installation
 
-There's no pre-built download yet. You can install from source in a few commands, or build your own `PointClicker.exe` on Windows.
+Download the latest version from the **[Releases page](https://github.com/khalilullahnaul/pointclicker/releases/latest)**. Every release has a `SHA256SUMS.txt` to verify the downloads.
 
 ### Windows
 
-**Option A: run from source**
+| Download | What it is |
+|---|---|
+| `PointClicker-Setup-x.y.z.exe` | **Installer (recommended).** Installs for your user only, no administrator rights needed |
+| `PointClicker-x.y.z-windows-portable.zip` | **Portable.** Unzip anywhere and run `PointClicker.exe`; nothing is installed |
 
-1. Install **Python 3.11+** from [python.org](https://www.python.org/downloads/). In the installer, tick **"Add python.exe to PATH"**.
-2. Open **PowerShell** and run:
+**Installer:**
 
-   ```powershell
-   git clone https://github.com/khalilullahnaul/pointclicker.git
-   cd pointclicker
-   py -3.11 -m venv .venv
-   .venv\Scripts\activate
-   pip install -e .
-   pointclicker
-   ```
+1. Run `PointClicker-Setup-x.y.z.exe`. Windows may show a blue **"Windows protected your PC"** screen (SmartScreen): see [below](#windows-windows-protected-your-pc-smartscreen).
+2. Optionally tick **Create a desktop shortcut** and **Start PointClicker when I sign in to Windows**.
+3. PointClicker is installed in `%LOCALAPPDATA%\Programs\PointClicker` and appears in the Start menu.
 
-   No git? Use **Code → Download ZIP** on GitHub, unzip it, and run the same commands from the unzipped folder.
+<!-- TODO screenshot: docs/images/install-windows.png (the installer's "Select Additional Tasks" page) -->
 
-3. Next time, just run `.venv\Scripts\activate` and then `pointclicker` from that folder.
-
-**Option B: build a standalone `PointClicker.exe`** (no Python needed afterwards)
-
-```powershell
-pip install -e ".[dev]"
-python build.py            # → dist\PointClicker.exe (checks that it starts)
-python build.py --admin    # also dist\PointClicker-Admin.exe, for clicking into admin windows
-```
-
-Copy `dist\PointClicker.exe` anywhere you like. It's a single file.
+**Portable:** unzip the whole folder, keep `PointClicker.exe` next to its `_internal` folder, and run it. Settings are stored in `%LOCALAPPDATA%\PointClicker` either way.
 
 ### Linux
 
-**Easiest, with [pipx](https://pipx.pypa.io/):**
+| Download | What it is |
+|---|---|
+| `PointClicker-x.y.z-x86_64.AppImage` | Runs on most distributions, nothing to install |
+| `pointclicker_x.y.z_amd64.deb` | Debian, Ubuntu, Mint, Pop!_OS…: Start-menu entry and the `pointclicker` command |
+| `pointclicker-setup-uinput.sh` | Optional Wayland helper (see [Linux Wayland](#linux-wayland)) |
+
+**AppImage:**
 
 ```bash
-pipx install git+https://github.com/khalilullahnaul/pointclicker.git
+chmod +x PointClicker-*-x86_64.AppImage
+./PointClicker-*-x86_64.AppImage
+```
+
+**.deb:**
+
+```bash
+sudo apt install ./pointclicker_*_amd64.deb
 pointclicker
 ```
 
-**Or in a virtual environment:**
+<!-- TODO screenshot: docs/images/install-linux.png (PointClicker in the app menu) -->
+
+There's no Flatpak or Snap on purpose: their sandboxes block the input injection an auto-clicker needs.
+
+On **Wayland**, also read [Linux Wayland](#linux-wayland): the first click asks for permission once, and global hotkeys may need a one-time setup.
+
+### From source (any OS)
+
+Needs **Python 3.11+**.
 
 ```bash
 git clone https://github.com/khalilullahnaul/pointclicker.git
 cd pointclicker
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -e .
 pointclicker
 ```
 
-If you use [uv](https://docs.astral.sh/uv/), run `uv sync`, then `uv run pointclicker`.
+Or with [pipx](https://pipx.pypa.io/): `pipx install git+https://github.com/khalilullahnaul/pointclicker.git`. With [uv](https://docs.astral.sh/uv/): `uv sync`, then `uv run pointclicker`.
 
-**System packages.** On X11, Qt needs `libxcb-cursor0`:
+On Linux X11 from source, Qt needs `libxcb-cursor0`:
 
 | Distribution | Command |
 |---|---|
@@ -134,18 +142,19 @@ If you use [uv](https://docs.astral.sh/uv/), run `uv sync`, then `uv run pointcl
 | Fedora | `sudo dnf install xcb-util-cursor` |
 | Arch | `sudo pacman -S xcb-util-cursor` |
 
-On **Wayland**, also read [Linux Wayland](#linux-wayland): the first click asks for permission once, and global hotkeys may need a one-time setup.
-
 ### Updating and uninstalling
 
-- **Update:**
-  - in the cloned folder: `git pull`, then `pip install -e .`;
-  - with pipx: `pipx upgrade pointclicker`.
-- **Uninstall:** delete the folder (or run `pipx uninstall pointclicker`). Your settings and targets stay in the [config folder](#diagnostics-logs-and-files); delete that too for a clean removal.
+- **Check for updates:** **About → Check for updates** compares your version with the latest release and offers the download page. It only contacts GitHub when you click it.
+- **Update:** install the new version over the old one (installer, `.deb`), or replace the AppImage / portable folder. Your settings are kept.
+- **Uninstall:**
+  - Windows installer: **Settings → Apps → PointClicker → Uninstall**. It asks whether to keep your settings.
+  - Portable / AppImage: delete the file or folder.
+  - `.deb`: `sudo apt remove pointclicker`.
+  - Settings and targets live in the [config folder](#diagnostics-logs-and-files); delete it for a clean removal.
 
 ## Quick start
 
-1. **Start PointClicker** with `pointclicker` (or `PointClicker.exe`).
+1. **Start PointClicker** from the Start menu / app menu, or run `pointclicker`.
 2. **Click "Pick a point".** The screen dims and a crosshair appears. Click the exact spot you want automated. Press **Esc** or right-click to cancel.
 3. **Set the schedule** in the dialog that opens, for example *every 5 min*, then click **Save**.
 4. **Press Start**, or press **F6** from any app. The countdown ring on the target's card shows when the next click happens.
@@ -260,7 +269,7 @@ PointClicker checks this for you. It compares the window before and after the fi
 
 - **Mica:** Windows 11 gets the Mica window background; Windows 10 gets a solid one.
 - **Accent color:** the default accent is your Windows accent color.
-- **Admin windows:** Windows blocks normal apps from clicking into apps that run **as administrator**. PointClicker shows a red notice when a target window is elevated. To click into such windows, run **PointClicker-Admin.exe**, or right-click PointClicker → *Run as administrator*.
+- **Admin windows:** Windows blocks normal apps from clicking into apps that run **as administrator**. PointClicker shows a red notice when a target window is elevated. To click into such windows, right-click PointClicker → *Run as administrator*.
 
 ### Linux X11
 
@@ -279,7 +288,13 @@ Wayland is stricter than Windows or X11. Apps can't read the pointer position or
 - **Window tracking** works only for X11 apps running through XWayland. On-screen markers aren't available.
 - **Hotkeys:** PointClicker uses the desktop's *GlobalShortcuts* portal where one exists (KDE Plasma, GNOME 48+). Otherwise it needs read access to the keyboards, so the one-time setup below.
 
-**One-time setup** (only if hotkeys say *unavailable*, or if the permission dialog is unavailable or was denied):
+**One-time setup** (only if hotkeys say *unavailable*, or if the permission dialog is unavailable or was denied). Easiest: run the helper from the release page, or `/opt/pointclicker/setup-uinput.sh` if you installed the `.deb`. It explains what it changes and asks first:
+
+```bash
+sh pointclicker-setup-uinput.sh            # undo with: sh pointclicker-setup-uinput.sh --remove
+```
+
+Or by hand:
 
 ```bash
 echo 'KERNEL=="uinput", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput"' | sudo tee /etc/udev/rules.d/60-pointclicker.rules
@@ -331,7 +346,30 @@ Minimized windows can't be clicked in either mode. Keep the window restored. Wit
 
 <details><summary><b>Windows: clicks into an app do nothing and there's a red "administrator" notice</b></summary>
 
-The target app runs as administrator. Run `PointClicker-Admin.exe`, or start PointClicker as administrator.
+The target app runs as administrator. Right-click PointClicker → *Run as administrator*.
+</details>
+
+<details><summary><b>Windows: "Windows protected your PC" (SmartScreen)</b></summary>
+
+PointClicker isn't code-signed yet (a certificate costs hundreds a year), so Windows SmartScreen warns about the installer and the exe until enough people have run them. To run it anyway:
+
+1. Click **More info**.
+2. Click **Run anyway**.
+
+You can check the file first: compare its SHA-256 (PowerShell: `Get-FileHash .\PointClicker-Setup-x.y.z.exe`) with `SHA256SUMS.txt` on the release page.
+
+<!-- TODO screenshot: docs/images/smartscreen.png (the "More info → Run anyway" dialog) -->
+</details>
+
+<details><summary><b>Windows: my antivirus flags or quarantines PointClicker</b></summary>
+
+An auto-clicker sends synthetic input to other apps, which some antivirus heuristics dislike, especially in unsigned apps. PointClicker is built as a normal app folder (not a self-extracting single exe) to keep these false positives rare. If it still happens, check the download against `SHA256SUMS.txt`, restore the file from quarantine and add an exclusion for the PointClicker folder, and please report it to your antivirus vendor as a false positive.
+</details>
+
+<details><summary><b>Linux: the AppImage doesn't start</b></summary>
+
+- Make it executable: `chmod +x PointClicker-*.AppImage`.
+- Run it from a terminal to see the error. "could not load the Qt platform plugin xcb" means `libxcb-cursor0` is missing (see [From source](#from-source-any-os) for the package names).
 </details>
 
 <details><summary><b>Wayland: I denied the permission dialog, or it never appeared</b></summary>
@@ -349,7 +387,7 @@ Restart PointClicker; it asks again on the next click. If clicking stopped after
 
 <details><summary><b>Linux: the app doesn't start ("could not load the Qt platform plugin xcb")</b></summary>
 
-Install `libxcb-cursor0` (see [Linux installation](#linux)).
+Install `libxcb-cursor0` (see [From source](#from-source-any-os) for the package names).
 </details>
 
 <details><summary><b>Clicks land slightly off after moving a window to another monitor</b></summary>
@@ -387,6 +425,28 @@ make test-all                # full Hypothesis runs, Xvfb integration, chaos, th
 uv run pointclicker --diagnose
 ```
 
+### Building and releasing
+
+```bash
+make build-linux             # dist/: AppImage + .deb (the built app is smoke-tested with --diagnose under Xvfb)
+```
+
+**Windows builds come from CI**, so you can ship from Linux. [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request:
+
+| Job | What it does |
+|---|---|
+| `test-linux` | `make test-all` under Xvfb |
+| `test-windows` | The full test suite natively on Windows, including real Win32 clicks into a test window in both modes (`tests/test_win32_real.py`) |
+| `build-windows` | PyInstaller app folder, smoke test (`PointClicker.exe --diagnose` must not crash), version resource check, Inno Setup installer, a silent install/uninstall round trip, portable zip |
+| `build-linux` | `make build-linux` on Ubuntu 22.04 (older glibc, so the packages run on older distros), then installs the `.deb` and runs it |
+| `release` | Tags only: attaches everything plus `SHA256SUMS.txt` to a GitHub Release |
+
+**To release:**
+
+1. Bump `__version__` in `src/pointclicker/__init__.py` (the only place the version lives) and commit.
+2. Tag and push: `git tag v0.2.0 && git push origin v0.2.0`. The tag must match `__version__`, or the build fails.
+3. CI publishes the release with the installer, portable zip, AppImage, `.deb`, uinput helper and checksums. Download artifacts of any other run from its Actions page.
+
 | Path | Purpose |
 |---|---|
 | `src/pointclicker/platform/` | Click backends: `windows/` (Win32), `linux/x11.py` (XTest/XSendEvent), `linux/wayland.py` (portal/uinput), `linux/hotkeys.py`, plus a `fake` backend for tests |
@@ -396,8 +456,11 @@ uv run pointclicker --diagnose
 | `src/pointclicker/ui/` | Fluent UI built with [PySide6-Fluent-Widgets](https://github.com/zhiyiYo/PyQt-Fluent-Widgets) |
 | `src/pointclicker/overlay.py` | Pick-a-point overlay and on-screen markers |
 | `src/pointclicker/diagnose.py` | `pointclicker --diagnose` |
-| `scripts/test_apps.py` | Windows: real click test against Notepad, Chrome and Calculator |
-| `build.py` | PyInstaller build of `PointClicker.exe` (and the admin variant) |
+| `scripts/test_apps.py` | Windows, by hand: which click mode works in Notepad, Chrome and Calculator |
+| `build.py` | PyInstaller app folder (`--onedir`) for the current OS, plus `--smoke` |
+| `packaging/windows/` | Inno Setup script and the DPI-aware manifest |
+| `packaging/linux/` | AppImage/`.deb` build script, desktop entry, uinput helper |
+| `src/pointclicker/updates.py` | About → Check for updates (latest GitHub release) |
 
 Bug reports are welcome: open an issue, and include your OS and the output of `pointclicker --diagnose`.
 

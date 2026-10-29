@@ -270,13 +270,14 @@ def main():
         from ..diagnose import run
         sys.exit(run())
     from .. import targets
-    from ..controller import setup_logging
+    from ..controller import launch_at_login_enabled, setup_logging
     from .style import apply_fonts
     setup_logging()
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)  # we live in the tray; quitting is explicit
     apply_fonts(app)
     cfg = targets.load()
+    cfg.launch_at_login = launch_at_login_enabled()  # the installer or the user may have changed it outside the app
     apply_theme(cfg)
     controller = AppController(cfg)
     win = MainWindow(controller)

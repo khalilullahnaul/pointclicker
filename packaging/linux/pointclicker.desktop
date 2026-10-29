@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=PointClicker
+GenericName=Auto Clicker
+Comment=Click fixed points on screen on their own schedules
+Exec=pointclicker
+Icon=pointclicker
+Terminal=false
+Categories=Utility;
+Keywords=click;clicker;autoclicker;automation;
+StartupWMClass=pointclicker
