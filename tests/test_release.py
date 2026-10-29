@@ -137,6 +137,7 @@ PKG = ROOT / "packaging"
 
 
 def test_uinput_helper_installs_exactly_what_the_app_checks_for():
+    pytest.importorskip("grp")  # the Linux backends are POSIX-only
     from pointclicker.platform.linux import setup
     script = (PKG / "linux" / "setup-uinput.sh").read_text()
     assert f"RULE='{setup.UDEV_RULE}'" in script and f"RULE_FILE={setup.UDEV_RULE_FILE}" in script
